@@ -3,17 +3,17 @@ import praw.exceptions
 import re
 import time
 import random
-import sqlite3
-import os
-from tendo import singleton
-import sys
-import importlib
 
-importlib.reload(sys)
 
-connect = sqlite3.connect('state.sqlite')
-cursor = connect.cursor()
-persistence = True
+UA = "MTGCardBelcher v1.0.0 by /u/MustaKotka (AetheriumSlinky)"
+
+r = praw.Reddit(
+    client_id="",
+    client_secret="",
+    password="",
+    user_agent=UA,
+    username=""
+)
 
 
 def comment_requires_action(comment_data: praw.Reddit.comment) -> bool:
@@ -23,21 +23,13 @@ def comment_requires_action(comment_data: praw.Reddit.comment) -> bool:
     :return: True if comment requires action.
     """
     comment_double_bracket_matches = get_bracket_matches(comment_data.body)
-    comment_author = str(comment_data.author)
-    cursor.execute('SELECT reply_id FROM replied WHERE reply_id=?', comment_data.id)
-    replied = cursor.fetchone()
     submission_exclusions = [
         # Weekly unjerk
         re.search(r'.*unjerk.*thread.*', string=comment_data.body, flags=re.IGNORECASE)
     ]
 
-    print(f"{comment_data.id} {comment_author} {replied} {comment_double_bracket_matches}")
-
     if comment_double_bracket_matches is None:
         print("No double bracket matches (comment). " + comment_data.id)
-        return False
-    elif replied is not None:
-        print("This comment has been replied to. " + comment_data.id)
         return False
     elif comment_data.author == 'MTGCardBelcher' or 'MTGCardFetcher':
         print("Bot will not reply to itself or to the real CardFetcher (comment). " + comment_data.id)
@@ -57,9 +49,6 @@ def submission_requires_action(submission_data: praw.Reddit.submission) -> bool:
     :return: True if submission requires action.
     """
     submission_double_bracket_match = get_bracket_matches(submission_data.selftext)
-    submission_author = str(submission_data.author)
-    cursor.execute('SELECT reply_id FROM replied WHERE reply_id=?', submission_data.id)
-    replied = cursor.fetchone()
     submission_exclusions = [
         # Weekly unjerk
         re.search(r'.*unjerk.*thread.*', string=submission_data.selftext, flags=re.IGNORECASE),
@@ -67,13 +56,8 @@ def submission_requires_action(submission_data: praw.Reddit.submission) -> bool:
         re.search(r'.*bottom.*scoring.*', string=submission_data.selftext, flags=re.IGNORECASE),
     ]
 
-    print(f"{submission_data.id} {submission_author} {replied} {submission_double_bracket_match}")
-
     if submission_double_bracket_match is None:
         print("No double bracket matches (submission). " + submission_data.id)
-        return False
-    elif replied is not None:
-        print("This post has been replied to. " + submission_data.id)
         return False
     elif submission_data.author == 'MTGCardBelcher' or 'MTGCardFetcher':
         print("Bot will not reply to itself or to the real CardFetcher (submission). " + submission_data.id)
@@ -112,106 +96,78 @@ def get_image_links(reddit: praw.Reddit) -> list:
                 print("Valid image submission: ", image_submissions.url)
             else:
                 print("Invalid submission: ", image_submissions.url)
-
     return img_candidates
 
 
 def bot_comment_action(
         comment: praw.Reddit.comment,
-        image_links: list,
-        respond=False):
+        image_links: list):
     """
     Executes the reply action in an eligible comment.
     :param comment: Comment to reply to.
     :param image_links: A list of image candidate links.
-    :param respond: Set True for replying.
     """
     creature_type = random.choice([
         "Horrors", "Kobolds", "Goblins", "Zombies", "Vampires", "Cephalids"
     ])
     bot_reply_text = "The " + creature_type + " have found the cards you're looking for:\n\n"
 
-    if respond:
-        text_matches = get_bracket_matches(comment.body)
-        for match_str in text_matches:
-            img_link = random.choice(image_links)
-            bot_reply_text += "[" + match_str + "](" + img_link + ")\n"
-        bot_reply_text += "\n*********\n\n^^^Submit ^^^your ^^^content ^^^at:\n\nr/MTGCardBelcher"
+    text_matches = get_bracket_matches(comment.body)
 
-        try:
-            comment.reply(bot_reply_text)
-        except praw.exceptions.RedditAPIException:
-            print("Failed to reply to comment: " + comment.id)
-        finally:
-            cursor.execute('INSERT INTO replied (reply_id) VALUES (?)', comment.id)
-            connect.commit()
+    for match_str in text_matches:
+        img_link = random.choice(image_links)
+        bot_reply_text += "[" + match_str + "](" + img_link + ")\n"
+    bot_reply_text += "\n*********\n\n^^^Submit ^^^your ^^^content ^^^at:\n\nr/MTGCardBelcher"
+
+    try:
+        comment.reply(bot_reply_text)
+    except praw.exceptions.RedditAPIException:
+        print("Failed to reply to comment: " + comment.id)
 
 
 def bot_submission_action(
         submission: praw.Reddit.submission,
-        image_links: list,
-        respond=False):
+        image_links: list):
     """
     Executes the reply action in an eligible submission.
     :param submission: Submission to reply to.
     :param image_links: A list of image candidate links.
-    :param respond: Set True for replying.
     """
     creature_type = random.choice([
         "Horrors", "Kobolds", "Goblins", "Zombies", "Vampires", "Cephalids"
     ])
     bot_reply_text = "The " + creature_type + " have found the cards you're looking for:\n\n"
 
-    if respond:
-        text_matches = get_bracket_matches(submission.selftext)
-        for match_str in text_matches:
-            img_link = random.choice(image_links)
-            bot_reply_text += "[" + match_str + "](" + img_link + ")\n"
-        bot_reply_text += "\n*********\n\n^^^Submit ^^^your ^^^content ^^^at:\n\nr/MTGCardBelcher"
+    text_matches = get_bracket_matches(submission.selftext)
 
-        try:
-            submission.reply(bot_reply_text)
-        except praw.exceptions.RedditAPIException:
-            print("Failed to reply to submission: " + submission.id)
-        finally:
-            cursor.execute('INSERT INTO replied (reply_id) VALUES(?)', submission.id)
-            connect.commit()
+    for match_str in text_matches:
+        img_link = random.choice(image_links)
+        bot_reply_text += "[" + match_str + "](" + img_link + ")\n"
+    bot_reply_text += "\n*********\n\n^^^Submit ^^^your ^^^content ^^^at:\n\nr/MTGCardBelcher"
+
+    try:
+        submission.reply(bot_reply_text)
+    except praw.exceptions.RedditAPIException:
+        print("Failed to reply to submission: " + submission.id)
 
 
-if __name__ == '__main__':
+target = "magicthecirclejerking"
+img_links = get_image_links(r)
 
-    me = singleton.SingleInstance()
 
-    cursor.execute('CREATE TABLE IF NOT EXISTS replied(reply_id)')
-    connect.commit()
+# Main loop
+while True:
+    image_refresh_timer = time.time()
 
-    UA = ('MTGCardBelcher, a MTGCardFetcher Parody bot for /r/magicthecirclejerking.'
-          'Kindly direct complaints to /u/MustaKotka')
-
-    r = praw.Reddit(
-        user_agent=UA,
-        client_id=os.getenv('CLIENT_ID'),
-        client_secret=os.getenv('CLIENT_SECRET')
-    )
-
-    last_refresh = int(time.time())
-    img_links = get_image_links(r)
-    target = "magicthecirclejerking"
+    if time.time() - image_refresh_timer > 58:
+        img_links = get_image_links(r)
 
     for mtcj_comment in r.subreddit(target).stream.comments(skip_existing=True):
         if comment_requires_action(mtcj_comment):
-            bot_comment_action(mtcj_comment, img_links, True)
-            now = int(time.time())
-            if now - last_refresh > 60:
-                img_links = get_image_links(r)
-                last_refresh = now
+            bot_comment_action(mtcj_comment, img_links)
 
     for mtcj_submission in r.subreddit(target).stream.submissions(skip_existing=True):
         if submission_requires_action(mtcj_submission):
-            bot_submission_action(mtcj_submission, img_links, True)
-            now = int(time.time())
-            if now - last_refresh > 60:
-                img_links = get_image_links(r)
-                last_refresh = now
+            bot_submission_action(mtcj_submission, img_links)
 
-    connect.close()
+    time.sleep(10)
