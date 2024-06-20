@@ -4,15 +4,17 @@ import re
 import time
 import random
 
+with open("", "r") as oauth_file:
+    info = oauth_file.read().splitlines()
 
 UA = "MTGCardBelcher v1.0.0 by /u/MustaKotka (AetheriumSlinky)"
 
 r = praw.Reddit(
-    client_id="",
-    client_secret="",
-    password="",
+    client_id=info[0],
+    client_secret=info[1],
+    password=info[2],
     user_agent=UA,
-    username=""
+    username=info[3]
 )
 
 
