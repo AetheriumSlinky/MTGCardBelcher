@@ -11,8 +11,8 @@ import importlib
 
 importlib.reload(sys)
 
-conn = sqlite3.connect('state.sqlite')
-cursor = conn.cursor()
+connect = sqlite3.connect('state.sqlite')
+cursor = connect.cursor()
 persistence = True
 
 
@@ -24,7 +24,7 @@ def comment_requires_action(comment_data: praw.Reddit.comment) -> bool:
     """
     comment_double_bracket_matches = get_bracket_matches(comment_data.body)
     comment_author = str(comment_data.author)
-    cursor.execute('SELECT comment_id FROM replied WHERE comment_id=?', comment_data.id)
+    cursor.execute('SELECT reply_id FROM replied WHERE reply_id=?', comment_data.id)
     replied = cursor.fetchone()
     submission_exclusions = [
         # Weekly unjerk
@@ -34,13 +34,13 @@ def comment_requires_action(comment_data: praw.Reddit.comment) -> bool:
     print(f"{comment_data.id} {comment_author} {replied} {comment_double_bracket_matches}")
 
     if comment_double_bracket_matches is None:
-        print("No double bracket matches. " + comment_data.id)
+        print("No double bracket matches (comment). " + comment_data.id)
         return False
     elif replied is not None:
         print("This comment has been replied to. " + comment_data.id)
         return False
-    elif comment_data.author == 'MTGCardBelcher':
-        print("Bot will not reply to itself (comment). " + comment_data.id)
+    elif comment_data.author == 'MTGCardBelcher' or 'MTGCardFetcher':
+        print("Bot will not reply to itself or to the real CardFetcher (comment). " + comment_data.id)
         return False
     elif comment_data.submission.title in submission_exclusions:
         print("Submission of the comment on exclusion list. " + comment_data.id)
@@ -58,7 +58,7 @@ def submission_requires_action(submission_data: praw.Reddit.submission) -> bool:
     """
     submission_double_bracket_match = get_bracket_matches(submission_data.selftext)
     submission_author = str(submission_data.author)
-    cursor.execute('SELECT submission_id FROM replied WHERE submission_id=?', submission_data.id)
+    cursor.execute('SELECT reply_id FROM replied WHERE reply_id=?', submission_data.id)
     replied = cursor.fetchone()
     submission_exclusions = [
         # Weekly unjerk
@@ -70,13 +70,13 @@ def submission_requires_action(submission_data: praw.Reddit.submission) -> bool:
     print(f"{submission_data.id} {submission_author} {replied} {submission_double_bracket_match}")
 
     if submission_double_bracket_match is None:
-        print("No double bracket matches. " + submission_data.id)
+        print("No double bracket matches (submission). " + submission_data.id)
         return False
     elif replied is not None:
         print("This post has been replied to. " + submission_data.id)
         return False
-    elif submission_data.author == 'MTGCardBelcher':
-        print("Bot will not reply to itself (submission). " + submission_data.id)
+    elif submission_data.author == 'MTGCardBelcher' or 'MTGCardFetcher':
+        print("Bot will not reply to itself or to the real CardFetcher (submission). " + submission_data.id)
         return False
     elif submission_data.title is submission_exclusions:
         print("Submission on exclusion list. " + submission_data.id)
@@ -143,8 +143,8 @@ def bot_comment_action(
         except praw.exceptions.RedditAPIException:
             print("Failed to reply to comment: " + comment.id)
         finally:
-            cursor.execute('INSERT INTO replied (comment_id) VALUES (?)', comment.id)
-            conn.commit()
+            cursor.execute('INSERT INTO replied (reply_id) VALUES (?)', comment.id)
+            connect.commit()
 
 
 def bot_submission_action(
@@ -174,16 +174,16 @@ def bot_submission_action(
         except praw.exceptions.RedditAPIException:
             print("Failed to reply to submission: " + submission.id)
         finally:
-            cursor.execute('INSERT INTO replied (submission_id) VALUES (?)', submission.id)
-            conn.commit()
+            cursor.execute('INSERT INTO replied (reply_id) VALUES(?)', submission.id)
+            connect.commit()
 
 
 if __name__ == '__main__':
 
     me = singleton.SingleInstance()
 
-    cursor.execute('''CREATE TABLE IF NOT EXISTS replied (comment_id text)''')
-    conn.commit()
+    cursor.execute('CREATE TABLE IF NOT EXISTS replied(reply_id)')
+    connect.commit()
 
     UA = ('MTGCardBelcher, a MTGCardFetcher Parody bot for /r/magicthecirclejerking.'
           'Kindly direct complaints to /u/MustaKotka')
@@ -191,15 +191,14 @@ if __name__ == '__main__':
     r = praw.Reddit(
         user_agent=UA,
         client_id=os.getenv('CLIENT_ID'),
-        client_secret=os.getenv('CLIENT_SECRET'),
-        refresh_token=os.getenv('REFRESH_TOKEN')
+        client_secret=os.getenv('CLIENT_SECRET')
     )
 
     last_refresh = int(time.time())
     img_links = get_image_links(r)
     target = "magicthecirclejerking"
 
-    for mtcj_comment in r.subreddit(target).stream.comments():
+    for mtcj_comment in r.subreddit(target).stream.comments(skip_existing=True):
         if comment_requires_action(mtcj_comment):
             bot_comment_action(mtcj_comment, img_links, True)
             now = int(time.time())
@@ -207,7 +206,7 @@ if __name__ == '__main__':
                 img_links = get_image_links(r)
                 last_refresh = now
 
-    for mtcj_submission in r.subreddit(target).stream.submissions():
+    for mtcj_submission in r.subreddit(target).stream.submissions(skip_existing=True):
         if submission_requires_action(mtcj_submission):
             bot_submission_action(mtcj_submission, img_links, True)
             now = int(time.time())
@@ -215,4 +214,4 @@ if __name__ == '__main__':
                 img_links = get_image_links(r)
                 last_refresh = now
 
-    conn.close()
+    connect.close()
