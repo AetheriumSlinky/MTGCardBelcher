@@ -1,6 +1,6 @@
-# What's this?
+# What is this?
 
-See [/r/MTGLardFetcher](https://www.reddit.com/r/MTGLardFetcher/), [/r/magicthecirclejerking](https://www.reddit.com/r/magicthecirclejerking/)... essentially an inside Joke Reddit Bot
+A joke bot for Reddit. See [/r/MTGCardBelcher](https://www.reddit.com/r/MTGCardBelcher/) and the target audience [/r/magicthecirclejerking](https://www.reddit.com/r/magicthecirclejerking/)
 
 # Requirements
 
