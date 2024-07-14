@@ -27,8 +27,8 @@ def get_image_links(reddit: praw.Reddit) -> list:
     :return: A list of image candidate links.
     """
     card_belcher = reddit.subreddit('MTGCardBelcher')
-    image_candidates = ['https://www.reddit.com/media?url=https%3A%2F%2Fi.redd.it%2Ftwl36n1dil7d1.png']  # Pot of Greed
-    for image_submissions in card_belcher.new(limit=100):
+    image_candidates = ['https://i.redd.it/pcmd6d3o1oad1.png']  # Jollyver is always an option - RIP LardFetcher
+    for image_submissions in card_belcher.new(limit=97):  # Don't hit rate limits
         if "/r/MTGCardBelcher" not in image_submissions.url:
             if (re.search('(i.redd.it|i.imgur.com)', image_submissions.url)
                     and image_submissions.link_flair_text == "Card Submission"):
@@ -36,17 +36,51 @@ def get_image_links(reddit: praw.Reddit) -> list:
     return image_candidates
 
 
-def generate_reply_text(reply_text_string: str, image_link: str) -> str:
-    creature_type = random.choice([
-        "Horrors", "Kobolds", "Goblins", "Zombies", "Vampires", "Cephalids"
-    ])
+def generate_reply_text(reply_text_string: str, image_links: list) -> str:
 
-    bot_reply_text = "The " + creature_type + " have found the cards you're looking for:\n\n"
+    choose_special = random.randint(-5, 100)
 
-    text_matches = get_regex_bracket_matches(reply_text_string)
+    if choose_special == 0:  # Special Eldrazi no image card links
+        bot_reply_text = (
+            "The Invasion annihilated the cards you were looking for.\n\n"
+            "Nothing but ashes and pain remain. Somehow you survive.\n\n"
+        )
 
-    for match_text_string in text_matches:
-        bot_reply_text += "[" + match_text_string + "](" + image_link + ")\n\n"
+    elif choose_special == -1:  # Special shagging monkes
+        bot_reply_text = (
+            "Instead of looking for any cards you stop to admire the marvels of nature:\n\n"
+            "[The Nature Is Wonderful]"
+            "(https://cards.scryfall.io/large/front/1/0/101c7d58-43cc-4ebd-87f1-2016fbff56dd.jpg?1562276965)\n\n"
+        )
+
+    else:
+        text_matches = get_regex_bracket_matches(reply_text_string)
+
+        if choose_special == -2:  # Special phyrexian oil
+            bot_reply_text = ("You find the cards you're looking for, "
+                              "but they're covered in that strange oil... It's probably nothing.\n\n")
+
+        elif choose_special == -3:  # Special licid mind injection
+            bot_reply_text = "The Licids have imprinted the cards you're looking for into your mind:\n\n"
+
+        elif choose_special == -4:  # Special Dreadmaw
+            bot_reply_text = "You feel the ground quake. You see the cards you're looking for, but it's too late.\n\n"
+
+        elif choose_special == -5:  # Special hungy Yargle
+            bot_reply_text = ("The Frog Spirit tried to give you the cards... But it was so hungry that it ate them. "
+                              "It tells you what they were, though: 'Gnshhagghkkapphribbit'\n\n")
+
+        else:
+            creature_type = random.choice([
+                "Horrors", "Kobolds", "Goblins", "Zombies", "Vampires", "Werewolves", "Legitimate Businesspeople",
+                "Brushwaggs", "Camarids", "Giants", "Devils", "Hydras", "Krakens", "Nightmares", "Dragons",
+                "Cyclopses", "Skeletons", "Dreadnoughts", "Wurms", "Leviathans",
+            ])
+
+            bot_reply_text = "The " + creature_type + " have delivered the cards you're looking for:\n\n"
+
+        for match_text_string in text_matches:
+            bot_reply_text += "[" + match_text_string + "](" + random.choice(image_links) + ")\n\n"
 
     bot_reply_text += "*********\n\n^^^Submit ^^^your ^^^content ^^^at:\n\nr/MTGCardBelcher"
 
@@ -115,14 +149,13 @@ def submission_requires_action(submission_data: praw.Reddit.submission) -> bool:
 
 def bot_comment_reply_action(
         comment_data: praw.Reddit.comment,
-        image_submission_links: list):
+        image_links: list):
     """
     Executes the reply action in an eligible comment.
     :param comment_data: Comment to reply to.
-    :param image_submission_links: A list of image candidate links.
+    :param image_links: A list of image candidate links.
     """
-    image_link = random.choice(image_submission_links)
-    reply_text = generate_reply_text(comment_data.body, image_link)
+    reply_text = generate_reply_text(comment_data.body, image_links)
     try:
         comment.reply(reply_text)
         print("Comment reply successful: " + comment_data.id)
@@ -132,14 +165,13 @@ def bot_comment_reply_action(
 
 def bot_submission_reply_action(
         submission_data: praw.Reddit.submission,
-        image_submission_links: list):
+        image_links: list):
     """
     Executes the reply action in an eligible submission.
     :param submission_data: Submission to reply to.
-    :param image_submission_links: A list of image candidate links.
+    :param image_links: A list of image candidate links.
     """
-    image_link = random.choice(image_submission_links)
-    reply_text = generate_reply_text(submission_data.selftext, image_link)
+    reply_text = generate_reply_text(submission_data.selftext, image_links)
     try:
         submission.reply(reply_text)
         print("Post reply successful: " + submission_data.id)
@@ -168,7 +200,7 @@ if __name__ == "__main__":
         username=info[4]
     )
 
-    image_links = get_image_links(r)
+    image_submission_links = get_image_links(r)
     image_refresh_timer = round(time.time())
     target = "magicthecirclejerking"
     mtcj_comments = r.subreddit(target).stream.comments(skip_existing=True, pause_after=2)
@@ -177,20 +209,19 @@ if __name__ == "__main__":
     print("...init complete.")
 
     # Main loop
-    while __name__ == "__main__":
+    while True:
 
-        if round(time.time()) - image_refresh_timer > 59:
+        if round(time.time()) - image_refresh_timer > 120:
             image_refresh_timer = round(time.time())
-            image_links = get_image_links(r)
-            print("Found " + str(len(image_links)) + " valid image submissions.")
+            image_submission_links = get_image_links(r)
+            print("Found " + str(len(image_submission_links)) + " valid image submissions.")
 
         for comment in mtcj_comments:
             try:
                 if comment_requires_action(comment):
-                    bot_comment_reply_action(comment, image_links)
+                    bot_comment_reply_action(comment, image_submission_links)
                     print("Eligible comment reply finished.")
             except AttributeError:  # No comments in stream results in None
-                print("Comment stream done.")
                 break
             except praw.exceptions.RedditAPIException:
                 print("Reddit is experiencing problems (comments).")
@@ -199,13 +230,12 @@ if __name__ == "__main__":
         for submission in mtcj_submissions:
             try:
                 if submission_requires_action(submission):
-                    bot_submission_reply_action(submission, image_links)
+                    bot_submission_reply_action(submission, image_submission_links)
                     print("Eligible submission reply finished.")
             except AttributeError:  # No submissions in stream results in None
-                print("Submission stream done.")
                 break
             except praw.exceptions.RedditAPIException:
-                print("Reddit is experiencing problems (submissions).")
+                print("Reddit is experiencing problems (submissions).")  # Does this bit work??
                 break
 
         time.sleep(0.1)
