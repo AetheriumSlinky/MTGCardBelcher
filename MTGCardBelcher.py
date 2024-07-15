@@ -206,6 +206,7 @@ if __name__ == "__main__":
     )
 
     image_submission_links = get_image_links(r)
+    print("Found " + str(len(image_submission_links)) + " valid image submissions.")
     image_refresh_timer = round(time.time())
     target = "magicthecirclejerking"
     mtcj_comments = r.subreddit(target).stream.comments(skip_existing=True, pause_after=2)
@@ -219,7 +220,6 @@ if __name__ == "__main__":
         if round(time.time()) - image_refresh_timer > 120:
             image_refresh_timer = round(time.time())
             image_submission_links = get_image_links(r)
-            print("Found " + str(len(image_submission_links)) + " valid image submissions.")
 
         for comment in mtcj_comments:
             try:
