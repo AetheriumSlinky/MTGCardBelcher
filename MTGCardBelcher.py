@@ -187,7 +187,7 @@ def bot_submission_reply_action(
 if __name__ == "__main__":
     print("Init...")
 
-    with open("P:\\oauth.txt", "r") as oauth_file:
+    with open("oauth.txt", "r") as oauth_file:
         info = oauth_file.read().splitlines()
 
 # Create a text file (here oauth.txt) with five rows:
