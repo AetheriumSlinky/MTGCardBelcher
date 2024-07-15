@@ -23,7 +23,7 @@ def get_regex_bracket_matches(text: str) -> list:
 def get_image_links(reddit: praw.Reddit) -> list:
     """
     Searches target CardBelcher subreddit for image links.
-    :param reddit: Reddit.
+    :param reddit: The instance of Reddit.
     :return: A list of image candidate links.
     """
     card_belcher = reddit.subreddit('MTGCardBelcher')
@@ -37,7 +37,12 @@ def get_image_links(reddit: praw.Reddit) -> list:
 
 
 def generate_reply_text(reply_text_string: str, image_links: list) -> str:
-
+    """
+    Generates the text that the bot will attempt to reply with.
+    :param reply_text_string: The regex matches from the original comment / submission.
+    :param image_links: A list of images links.
+    :return: Fully formatted reply text.
+    """
     choose_special = random.randint(-5, 100)
 
     if choose_special == 0:  # Special Eldrazi no image card links
@@ -182,7 +187,7 @@ def bot_submission_reply_action(
 if __name__ == "__main__":
     print("Init...")
 
-    with open("oauth.txt", "r") as oauth_file:
+    with open("P:\\oauth.txt", "r") as oauth_file:
         info = oauth_file.read().splitlines()
 
 # Create a text file (here oauth.txt) with five rows:
