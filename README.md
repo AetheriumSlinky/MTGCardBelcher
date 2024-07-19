@@ -8,6 +8,7 @@ and the target audience [/r/magicthecirclejerking](https://www.reddit.com/r/magi
 - Regex matches double bracketed strings in posts and comments on a chosen subreddit.
 - Replies with a random image post from another chosen subreddit.
 - Ignores certain posts/comments in the chosen subbreddit (and itself).
+- Tries to restore connection to Reddit if Reddit is experiencing internal problems.
 
 # Requirements
 
