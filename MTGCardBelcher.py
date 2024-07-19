@@ -184,19 +184,18 @@ def bot_submission_reply_action(
         print("Failed to reply to post because Reddit has a problem: " + str(e))
 
 
-if __name__ == "__main__":
-    print("Init...")
-
+def login():
     with open("oauth.txt", "r") as oauth_file:
         info = oauth_file.read().splitlines()
 
-# Create a text file (here oauth.txt) with five rows:
+    # Create a text file (here oauth.txt) with five rows:
     # Client id
     # Secret
     # Account password
     # User Agent information
     # Account username
 
+    global r
     r = praw.Reddit(
         client_id=info[0],
         client_secret=info[1],
@@ -205,42 +204,64 @@ if __name__ == "__main__":
         username=info[4]
     )
 
-    image_submission_links = get_image_links(r)
-    print("Found " + str(len(image_submission_links)) + " valid image submissions.")
-    image_refresh_timer = round(time.time())
     target = "magicthecirclejerking"
+    global mtcj_comments
+    global mtcj_submissions
+    global image_submission_links
     mtcj_comments = r.subreddit(target).stream.comments(skip_existing=True, pause_after=2)
     mtcj_submissions = r.subreddit(target).stream.submissions(skip_existing=True, pause_after=2)
+    image_submission_links = get_image_links(r)
+    print("Found " + str(len(image_submission_links)) + " valid image submissions.")
 
+
+if __name__ == "__main__":
+    print("Init...")
+    image_refresh_timer = round(time.time())
+    r = None
+    mtcj_comments = []
+    mtcj_submissions = []
+    image_submission_links = []
+    login_success = False
+    while not login_success:
+        try:
+            login()
+            login_success = True
+            print("Login successful.")
+        except praw.exceptions.RedditAPIException:
+            time.sleep(300)
     print("...init complete.")
 
     # Main loop
     while True:
+        try:
+            if round(time.time()) - image_refresh_timer > 120:
+                image_refresh_timer = round(time.time())
+                image_submission_links = get_image_links(r)
 
-        if round(time.time()) - image_refresh_timer > 120:
-            image_refresh_timer = round(time.time())
-            image_submission_links = get_image_links(r)
+            for comment in mtcj_comments:
+                try:
+                    if comment_requires_action(comment):
+                        bot_comment_reply_action(comment, image_submission_links)
+                        print("Eligible comment reply finished.")
+                except AttributeError:  # No comments in stream results in None
+                    break
 
-        for comment in mtcj_comments:
+            for submission in mtcj_submissions:
+                try:
+                    if submission_requires_action(submission):
+                        bot_submission_reply_action(submission, image_submission_links)
+                        print("Eligible submission reply finished.")
+                except AttributeError:  # No submissions in stream results in None
+                    break
+
+        except praw.exceptions.RedditAPIException:
+            print("Server side error: sleeping for 5 minutes.")
+            time.sleep(300)
             try:
-                if comment_requires_action(comment):
-                    bot_comment_reply_action(comment, image_submission_links)
-                    print("Eligible comment reply finished.")
-            except AttributeError:  # No comments in stream results in None
-                break
+                login()
+                print("Re-login successful.")
             except praw.exceptions.RedditAPIException:
-                print("Reddit is experiencing problems (comments).")
-                break
-
-        for submission in mtcj_submissions:
-            try:
-                if submission_requires_action(submission):
-                    bot_submission_reply_action(submission, image_submission_links)
-                    print("Eligible submission reply finished.")
-            except AttributeError:  # No submissions in stream results in None
-                break
-            except praw.exceptions.RedditAPIException:
-                print("Reddit is experiencing problems (submissions).")  # Does this bit work??
-                break
+                print("Re-login unsuccessful, trying again.")
+                continue
 
         time.sleep(0.1)
