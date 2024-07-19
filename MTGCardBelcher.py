@@ -7,6 +7,36 @@ import random
 # MTGCardBelcher v1.0.0 by /u/MustaKotka (AetheriumSlinky)
 
 
+def login():
+    with open("oauth.txt", "r") as oauth_file:
+        info = oauth_file.read().splitlines()
+
+    # Create a text file (here oauth.txt) with five rows:
+    # Client id
+    # Secret
+    # Account password
+    # User Agent information
+    # Account username
+
+    global r
+    r = praw.Reddit(
+        client_id=info[0],
+        client_secret=info[1],
+        password=info[2],
+        user_agent=info[3],
+        username=info[4]
+    )
+
+    target = "magicthecirclejerking"
+    global mtcj_comments
+    global mtcj_submissions
+    global image_submission_links
+    mtcj_comments = r.subreddit(target).stream.comments(skip_existing=True, pause_after=2)
+    mtcj_submissions = r.subreddit(target).stream.submissions(skip_existing=True, pause_after=2)
+    image_submission_links = get_image_links(r)
+    print("Found " + str(len(image_submission_links)) + " valid image submissions.")
+
+
 def get_regex_bracket_matches(text: str) -> list:
     """
     Regex searches for double square brackets (bot call) in text.
@@ -161,11 +191,8 @@ def bot_comment_reply_action(
     :param image_links: A list of image candidate links.
     """
     reply_text = generate_reply_text(comment_data.body, image_links)
-    try:
-        comment.reply(reply_text)
-        print("Comment reply successful: " + comment_data.id)
-    except praw.exceptions.RedditAPIException as e:
-        print("Failed to reply to comment because Reddit has a problem: " + str(e))
+    comment.reply(reply_text)
+    print("Comment reply successful: " + comment_data.id)
 
 
 def bot_submission_reply_action(
@@ -177,70 +204,62 @@ def bot_submission_reply_action(
     :param image_links: A list of image candidate links.
     """
     reply_text = generate_reply_text(submission_data.selftext, image_links)
-    try:
-        submission.reply(reply_text)
-        print("Post reply successful: " + submission_data.id)
-    except praw.exceptions.RedditAPIException as e:
-        print("Failed to reply to post because Reddit has a problem: " + str(e))
+    submission.reply(reply_text)
+    print("Post reply successful: " + submission_data.id)
 
 
 if __name__ == "__main__":
     print("Init...")
-
-    with open("oauth.txt", "r") as oauth_file:
-        info = oauth_file.read().splitlines()
-
-# Create a text file (here oauth.txt) with five rows:
-    # Client id
-    # Secret
-    # Account password
-    # User Agent information
-    # Account username
-
-    r = praw.Reddit(
-        client_id=info[0],
-        client_secret=info[1],
-        password=info[2],
-        user_agent=info[3],
-        username=info[4]
-    )
-
-    image_submission_links = get_image_links(r)
-    print("Found " + str(len(image_submission_links)) + " valid image submissions.")
     image_refresh_timer = round(time.time())
-    target = "magicthecirclejerking"
-    mtcj_comments = r.subreddit(target).stream.comments(skip_existing=True, pause_after=2)
-    mtcj_submissions = r.subreddit(target).stream.submissions(skip_existing=True, pause_after=2)
-
+    r = None
+    mtcj_comments = []
+    mtcj_submissions = []
+    image_submission_links = []
+    login_success = False
+    while not login_success:
+        try:
+            login()
+            login_success = True
+            print("Login successful.")
+        except praw.exceptions.RedditAPIException as e:
+            print("Login unsuccessful, trying again after 5 minutes. " + str(e))
+            time.sleep(300)
     print("...init complete.")
 
     # Main loop
     while True:
+        try:
+            if round(time.time()) - image_refresh_timer > 120:
+                image_refresh_timer = round(time.time())
+                image_submission_links = get_image_links(r)
 
-        if round(time.time()) - image_refresh_timer > 120:
-            image_refresh_timer = round(time.time())
-            image_submission_links = get_image_links(r)
+            for comment in mtcj_comments:
+                try:
+                    if comment_requires_action(comment):
+                        bot_comment_reply_action(comment, image_submission_links)
+                        print("Eligible comment reply finished.")
+                except AttributeError:  # No comments in stream results in None
+                    break
 
-        for comment in mtcj_comments:
-            try:
-                if comment_requires_action(comment):
-                    bot_comment_reply_action(comment, image_submission_links)
-                    print("Eligible comment reply finished.")
-            except AttributeError:  # No comments in stream results in None
-                break
-            except praw.exceptions.RedditAPIException:
-                print("Reddit is experiencing problems (comments).")
-                break
+            for submission in mtcj_submissions:
+                try:
+                    if submission_requires_action(submission):
+                        bot_submission_reply_action(submission, image_submission_links)
+                        print("Eligible submission reply finished.")
+                except AttributeError:  # No submissions in stream results in None
+                    break
 
-        for submission in mtcj_submissions:
-            try:
-                if submission_requires_action(submission):
-                    bot_submission_reply_action(submission, image_submission_links)
-                    print("Eligible submission reply finished.")
-            except AttributeError:  # No submissions in stream results in None
-                break
-            except praw.exceptions.RedditAPIException:
-                print("Reddit is experiencing problems (submissions).")  # Does this bit work??
-                break
+        except praw.exceptions.RedditAPIException as e:
+            print("Server side error, trying login again after 5 minutes. " + str(e))
+            time.sleep(300)
+            relogin_success = False
+            while not relogin_success:
+                try:
+                    login()
+                    relogin_success = True
+                    print("Re-login successful.")
+                except praw.exceptions.RedditAPIException as e:
+                    print("Re-login unsuccessful, trying again after 5 minutes. " + str(e))
+                    time.sleep(300)
 
         time.sleep(0.1)
