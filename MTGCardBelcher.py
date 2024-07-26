@@ -1,5 +1,6 @@
 import praw
 import praw.exceptions
+import prawcore
 import re
 import time
 import random
@@ -37,6 +38,24 @@ def login():
     print("Found " + str(len(image_submission_links)) + " valid image submissions.")
 
 
+def try_login():
+    login_success = False
+    while not login_success:
+        try:
+            login()
+            login_success = True
+            print("Login successful.")
+        except prawcore.ServerError as server_e:
+            print("Server error, trying again in 5 minutes. " + str(server_e))
+            time.sleep(300)
+        except prawcore.RequestException as request_e:
+            print("Incomplete HTTP request, trying again in 10 seconds. " + str(request_e))
+            time.sleep(10)
+        except prawcore.ResponseException as response_e:
+            print("HTTP request response error, trying again in 30 seconds. " + str(response_e))
+            time.sleep(30)
+
+
 def get_regex_bracket_matches(text: str) -> list:
     """
     Regex searches for double square brackets (bot call) in text.
@@ -46,7 +65,6 @@ def get_regex_bracket_matches(text: str) -> list:
     browser_double_bracket_matches = re.findall(r'''\\\[\\\[([^\\\[\]]+)\\]\\]''', text)
     mobile_double_bracket_matches = re.findall(r'''\[\[([^\[\]]+)]]''', text)
     all_matches = browser_double_bracket_matches + mobile_double_bracket_matches
-
     return all_matches
 
 
@@ -58,7 +76,7 @@ def get_image_links(reddit: praw.Reddit) -> list:
     """
     card_belcher = reddit.subreddit('MTGCardBelcher')
     image_candidates = ['https://i.redd.it/pcmd6d3o1oad1.png']  # Jollyver is always an option - RIP LardFetcher
-    for image_submissions in card_belcher.new(limit=97):  # Don't hit rate limits
+    for image_submissions in card_belcher.new(limit=250):  # Don't hit rate limits?
         if "/r/MTGCardBelcher" not in image_submissions.url:
             if (re.search('(i.redd.it|i.imgur.com)', image_submissions.url)
                     and image_submissions.link_flair_text == "Card Submission"):
@@ -182,7 +200,7 @@ def submission_requires_action(submission_data: praw.Reddit.submission) -> bool:
         return True
 
 
-def bot_comment_reply_action(
+def comment_reply(
         comment_data: praw.Reddit.comment,
         image_links: list):
     """
@@ -195,7 +213,7 @@ def bot_comment_reply_action(
     print("Comment reply successful: " + comment_data.id)
 
 
-def bot_submission_reply_action(
+def submission_reply(
         submission_data: praw.Reddit.submission,
         image_links: list):
     """
@@ -210,56 +228,43 @@ def bot_submission_reply_action(
 
 if __name__ == "__main__":
     print("Init...")
-    image_refresh_timer = round(time.time())
+    image_refresh_timer = time.time()
     r = None
     mtcj_comments = []
     mtcj_submissions = []
     image_submission_links = []
-    login_success = False
-    while not login_success:
-        try:
-            login()
-            login_success = True
-            print("Login successful.")
-        except praw.exceptions.RedditAPIException as e:
-            print("Login unsuccessful, trying again after 5 minutes. " + str(e))
-            time.sleep(300)
+    try_login()
     print("...init complete.")
 
     # Main loop
     while True:
         try:
-            if round(time.time()) - image_refresh_timer > 120:
+            if time.time() - image_refresh_timer > 120:
                 image_refresh_timer = round(time.time())
                 image_submission_links = get_image_links(r)
 
             for comment in mtcj_comments:
                 try:
                     if comment_requires_action(comment):
-                        bot_comment_reply_action(comment, image_submission_links)
-                        print("Eligible comment reply finished.")
+                        comment_reply(comment, image_submission_links)
                 except AttributeError:  # No comments in stream results in None
                     break
 
             for submission in mtcj_submissions:
                 try:
                     if submission_requires_action(submission):
-                        bot_submission_reply_action(submission, image_submission_links)
-                        print("Eligible submission reply finished.")
+                        submission_reply(submission, image_submission_links)
                 except AttributeError:  # No submissions in stream results in None
                     break
 
-        except praw.exceptions.RedditAPIException as e:
-            print("Server side error, trying login again after 5 minutes. " + str(e))
-            time.sleep(300)
-            relogin_success = False
-            while not relogin_success:
-                try:
-                    login()
-                    relogin_success = True
-                    print("Re-login successful.")
-                except praw.exceptions.RedditAPIException as e:
-                    print("Re-login unsuccessful, trying again after 5 minutes. " + str(e))
-                    time.sleep(300)
+        except prawcore.ServerError as e:
+            print(str(e))
+            try_login()
+        except prawcore.RequestException as e:
+            print(str(e))
+            try_login()
+        except prawcore.ResponseException as e:
+            print(str(e))
+            try_login()
 
         time.sleep(0.1)
