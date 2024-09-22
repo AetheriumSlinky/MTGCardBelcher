@@ -30,27 +30,22 @@ def reddit_login(login_info) -> praw.Reddit:
     return reddit
 
 
-def login_sequence(login_info) -> dict:
+def login_sequence(login_info, targets: list) -> dict:
     """
     Keeps trying to log in to Reddit.
     :param login_info: A text file containing the OAuth info.
+    :param targets:
     :return: A dict of mtcj and dev comments and submissions, and image links.
     """
     while True:
         try:
             reddit = reddit_login(login_info)
-            logger.info('Reddit login successful.')
-            mtcj_comments = comment_streams(reddit)["mtcj"]
-            dev_comments = comment_streams(reddit)["dev"]
-            mtcj_submissions = submission_streams(reddit)["mtcj"]
-            dev_submissions = submission_streams(reddit)["dev"]
             image_links = get_image_links(reddit)
-
+            comments = comment_streams(reddit, targets)
+            submissions = submission_streams(reddit, targets)
+            logger.info('Reddit login successful.')
             return {
-                "reddit": reddit,
-                "mtcj_comments": mtcj_comments, "mtcj_submissions": mtcj_submissions,
-                "dev_comments": dev_comments, "dev_submissions": dev_submissions,
-                "image_links": image_links,
+                "reddit": reddit, "images": image_links, "comments": comments, "submissions": submissions,
             }
 
         except prawcore.ServerError as server_err:
@@ -64,27 +59,29 @@ def login_sequence(login_info) -> dict:
             time.sleep(30)
 
 
-def comment_streams(reddit: praw.Reddit) -> dict:
+def comment_streams(reddit: praw.Reddit, targets: list) -> dict:
     """
     Opens the comment streams on MTCJ and MTGCardBelcher_dev.
     :param reddit: Reddit.
+    :param targets:
     :return: Dict of 'mtcj' comment stream, 'dev' comment stream.
     """
-    mtcj_stream = reddit.subreddit("magicthecirclejerking").stream.comments(skip_existing=True, pause_after=2)
-    dev_stream = reddit.subreddit("MTGCardBelcher_dev").stream.comments(skip_existing=True, pause_after=2)
-    streams = {"mtcj": mtcj_stream, "dev": dev_stream}
+    streams = {}
+    for target in targets:
+        streams[target] = reddit.subreddit(target).stream.comments(skip_existing=True, pause_after=2)
     return streams
 
 
-def submission_streams(reddit: praw.Reddit):
+def submission_streams(reddit: praw.Reddit, targets: list) -> dict:
     """
     Opens the submission streams on MTCJ and MTGCardBelcher_dev.
     :param reddit: Reddit.
+    :param targets:
     :return: Dict of 'mtcj' submission stream, 'dev' submission stream
     """
-    mtcj_stream = reddit.subreddit("magicthecirclejerking").stream.submissions(skip_existing=True, pause_after=2)
-    dev_stream = reddit.subreddit("MTGCardBelcher_dev").stream.submissions(skip_existing=True, pause_after=2)
-    streams = {"mtcj": mtcj_stream, "dev": dev_stream}
+    streams = {}
+    for target in targets:
+        streams[target] = reddit.subreddit(target).stream.submissions(skip_existing=True, pause_after=2)
     return streams
 
 
@@ -407,7 +404,7 @@ def comment_reply(comment_data: praw.Reddit.comment, image_links: list):
     :param image_links: A list of image candidate links.
     """
     reply_text = generate_reply_text(comment_data.body, image_links)
-    comment.reply(reply_text)
+    comment_data.reply(reply_text)
     logger.info("Comment reply successful: " + comment_data.id)
     print("Comment reply successful: " + comment_data.permalink)
 
@@ -419,14 +416,33 @@ def submission_reply(submission_data: praw.Reddit.submission, image_links: list)
     :param image_links: A list of image candidate links.
     """
     reply_text = generate_reply_text(submission_data.selftext, image_links)
-    submission.reply(reply_text)
+    submission_data.reply(reply_text)
     logger.info("Submission reply successful: " + submission_data.id)
     print("Submission reply successful: " + submission_data.permalink)
+
+
+def comment_action(comment_stream, image_links: list):
+    for comment in comment_stream:
+        try:
+            if comment_requires_action(comment):
+                comment_reply(comment, image_links)
+        except AttributeError:  # No comments in stream results in None
+            break
+
+
+def submission_action(submission_stream, image_links: list):
+    for submission in submission_stream:
+        try:
+            if comment_requires_action(submission):
+                comment_reply(submission, image_links)
+        except AttributeError:  # No comments in stream results in None
+            break
 
 
 # Setup, run only once
 if __name__ == "__main__":
     print("Init...")
+    target_subreddits = ["magicthecirclejerking", "MTGCardBelcher_dev"]
     logger = logging.getLogger(__name__)
     logging.basicConfig(
         filename="log.txt", encoding='utf-8', level=logging.INFO,
@@ -444,8 +460,8 @@ if __name__ == "__main__":
 
     oauth = "oauth.txt"
     image_refresh_timer = time.time()  # Image submission fetch timer
-    reddit_streams = login_sequence(oauth)  # Open Reddit
-    image_submission_links = reddit_streams["image_links"]  # Fetch joke images once before main loop
+    reddit_streams = login_sequence(oauth, target_subreddits)  # Open Reddit
+    image_submission_links = reddit_streams["images"]  # Fetch joke images once before main loop
     logger.info('Reddit session initiation complete.')
     print("...init complete.")
 
@@ -456,46 +472,22 @@ if __name__ == "__main__":
                 image_refresh_timer = time.time()
                 image_submission_links = get_image_links(reddit_streams["reddit"])
 
-            for comment in reddit_streams["mtcj_comments"]:
-                try:
-                    if comment_requires_action(comment):
-                        comment_reply(comment, image_submission_links)
-                except AttributeError:  # No comments in stream results in None
-                    break
-
-            for submission in reddit_streams["mtcj_submissions"]:
-                try:
-                    if submission_requires_action(submission):
-                        submission_reply(submission, image_submission_links)
-                except AttributeError:  # No submissions in stream results in None
-                    break
-
-            for comment in reddit_streams["dev_comments"]:
-                try:
-                    if comment_requires_action(comment):
-                        comment_reply(comment, image_submission_links)
-                except AttributeError:  # No comments in stream results in None
-                    break
-
-            for submission in reddit_streams["dev_submissions"]:
-                try:
-                    if comment_requires_action(submission):
-                        comment_reply(submission, image_submission_links)
-                except AttributeError:  # No comments in stream results in None
-                    break
+            for sub in target_subreddits:
+                comment_action(reddit_streams["comments"][sub], image_submission_links)
+                submission_action(reddit_streams["submissions"][sub], image_submission_links)
 
         except prawcore.ServerError as server_e:
             logger.warning("Server error, trying again in 5 minutes. Error code: " + str(server_e))
             time.sleep(300)
-            reddit_streams = login_sequence(oauth)
+            reddit_streams = login_sequence(oauth, target_subreddits)
         except prawcore.RequestException as request_e:
             logger.warning("Incomplete HTTP request, trying again in 10 seconds. Error code: " + str(request_e))
             time.sleep(10)
-            reddit_streams = login_sequence(oauth)
+            reddit_streams = login_sequence(oauth, target_subreddits)
         except prawcore.ResponseException as response_e:
             logger.warning("HTTP request response error, trying again in 30 seconds. Error code: " + str(response_e))
             time.sleep(30)
-            reddit_streams = login_sequence(oauth)
+            reddit_streams = login_sequence(oauth, target_subreddits)
         except praw.exceptions.RedditAPIException as api_e:
             logger.warning("APIException. Error code: " + str(api_e))
             time.sleep(30)
