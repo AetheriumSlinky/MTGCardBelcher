@@ -88,24 +88,22 @@ def login_sequence(login_info, targets: list) -> dict:
     """
     Keeps trying to log in to Reddit.
     :param login_info: A text file containing the OAuth info.
-    :param targets:
-    :return: A dict of mtcj and dev comments and submissions, and image links.
+    :param targets: A list of target subreddits.
+    :return: A dict of Reddit, comments and submissions.
     """
     reddit = reddit_login(login_info)
     comments = comment_streams(reddit, targets)
     submissions = submission_streams(reddit, targets)
     logger.info('Reddit login successful.')
-    return {
-        "reddit": reddit, "comments": comments, "submissions": submissions,
-    }
+    return {"reddit": reddit, "comments": comments, "submissions": submissions}
 
 
 def comment_streams(reddit: praw.Reddit, targets: list) -> dict:
     """
     Opens the comment streams on MTCJ and MTGCardBelcher_dev.
     :param reddit: Reddit.
-    :param targets:
-    :return: Dict of 'mtcj' comment stream, 'dev' comment stream.
+    :param targets: A list of target subreddits.
+    :return: Dict of target subreddits streams.
     """
     streams = {}
     for target in targets:
@@ -117,8 +115,8 @@ def submission_streams(reddit: praw.Reddit, targets: list) -> dict:
     """
     Opens the submission streams on MTCJ and MTGCardBelcher_dev.
     :param reddit: Reddit.
-    :param targets:
-    :return: Dict of 'mtcj' submission stream, 'dev' submission stream
+    :param targets: A list of target subreddits.
+    :return: Dict of target subreddits streams.
     """
     streams = {}
     for target in targets:
@@ -130,7 +128,7 @@ def submission_streams(reddit: praw.Reddit, targets: list) -> dict:
 def get_image_links(reddit: praw.Reddit) -> list:
     """
     Searches target CardBelcher subreddit for image links.
-    :param reddit: The instance of Reddit.
+    :param reddit: Reddit.
     :return: A list of image candidate links.
     """
     card_belcher = reddit.subreddit('MTGCardBelcher')
@@ -497,9 +495,9 @@ if __name__ == "__main__":
 
     oauth = "oauth.txt"
     logs = "log.txt"
-    logger = start_logger(logs)
+    logger = start_logger(logs)  # Start logging
     logger.info('New Reddit session start.')
-    target_subreddits = ["magicthecirclejerking", "MTGCardBelcher_dev"]
+    target_subreddits = ["magicthecirclejerking", "MTGCardBelcher_dev"]  # Targets list
     reddit_streams = login_sequence(oauth, target_subreddits)  # Open Reddit
     image_refresh_timer = time.time()  # Image submission fetch timer
     image_submission_links = get_image_links(reddit_streams["reddit"])  # Fetch joke images once before main loop
