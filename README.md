@@ -3,6 +3,8 @@
 A joke bot for Reddit. See [/r/MTGCardBelcher](https://www.reddit.com/r/MTGCardBelcher/)
 and the target audience [/r/magicthecirclejerking](https://www.reddit.com/r/magicthecirclejerking/).
 
+RIP [original LardFetcher](https://github.com/MTGLardFetcher/MTGLardFetcher)
+
 # Features
 
 - Regex matches double bracketed strings in posts and comments on a chosen subreddit.
@@ -12,6 +14,7 @@ and the target audience [/r/magicthecirclejerking](https://www.reddit.com/r/magi
 - Links to u/Rastamonliveup's r/custommagic cards when called by exact name instead of a random card.
 - Ignores certain posts/comments in the chosen subbreddit (and itself).
 - Tries to restore connection to Reddit if Reddit is experiencing internal problems.
+- Logs info and errors.
 
 # Requirements
 
