@@ -11,6 +11,59 @@ import requests
 # MTGCardBelcher v1.0.0 by /u/MustaKotka (AetheriumSlinky)
 
 
+def start_logger(log_file):
+    log = logging.getLogger(__name__)
+    logging.basicConfig(
+        filename=log_file, encoding='utf-8', level=logging.INFO,
+        format='%(asctime)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M;%S')
+    return log
+
+
+def login_error_handler(func):
+    def wrapper(*args, **kwargs):
+        while True:
+            try:
+                func(*args, **kwargs)
+                break
+            except prawcore.ServerError as server_err:
+                logger.warning("Server error, retry in 5 minutes. Error code: " + str(server_err))
+                time.sleep(300)
+            except prawcore.RequestException as request_exc:
+                logger.warning("Incomplete HTTP request, retry in 10 seconds. Error code: " + str(request_exc))
+                time.sleep(10)
+            except prawcore.ResponseException as response_exc:
+                logger.warning("HTTP request response error, retry in 30 seconds. Error code: " + str(response_exc))
+                time.sleep(30)
+            except praw.exceptions.RedditAPIException as api_e:
+                logger.warning("APIException. Error code: " + str(api_e))
+                time.sleep(30)
+    return wrapper
+
+
+def main_error_handler(func):
+    def wrapper(*args, **kwargs):
+        while True:
+            try:
+                func(*args, **kwargs)
+                break
+            except prawcore.ServerError as server_err:
+                logger.warning("Server error, retry in 5 minutes. Error code: " + str(server_err))
+                time.sleep(300)
+                login_sequence(oauth, target_subreddits)
+            except prawcore.RequestException as request_exc:
+                logger.warning("Incomplete HTTP request, retry in 10 seconds. Error code: " + str(request_exc))
+                time.sleep(10)
+                login_sequence(oauth, target_subreddits)
+            except prawcore.ResponseException as response_exc:
+                logger.warning("HTTP request response error, retry in 30 seconds. Error code: " + str(response_exc))
+                time.sleep(30)
+                login_sequence(oauth, target_subreddits)
+            except praw.exceptions.RedditAPIException as api_e:
+                logger.warning("APIException. Error code: " + str(api_e))
+                time.sleep(30)
+    return wrapper
+
+
 def reddit_login(login_info) -> praw.Reddit:
     """
     Logs in to Reddit.
@@ -30,6 +83,7 @@ def reddit_login(login_info) -> praw.Reddit:
     return reddit
 
 
+@login_error_handler
 def login_sequence(login_info, targets: list) -> dict:
     """
     Keeps trying to log in to Reddit.
@@ -37,26 +91,13 @@ def login_sequence(login_info, targets: list) -> dict:
     :param targets:
     :return: A dict of mtcj and dev comments and submissions, and image links.
     """
-    while True:
-        try:
-            reddit = reddit_login(login_info)
-            image_links = get_image_links(reddit)
-            comments = comment_streams(reddit, targets)
-            submissions = submission_streams(reddit, targets)
-            logger.info('Reddit login successful.')
-            return {
-                "reddit": reddit, "images": image_links, "comments": comments, "submissions": submissions,
-            }
-
-        except prawcore.ServerError as server_err:
-            logger.warning("Server error, trying again in 5 minutes. Error code: " + str(server_err))
-            time.sleep(300)
-        except prawcore.RequestException as request_exc:
-            logger.warning("Incomplete HTTP request, trying again in 10 seconds. Error code: " + str(request_exc))
-            time.sleep(10)
-        except prawcore.ResponseException as response_exc:
-            logger.warning("HTTP request response error, trying again in 30 seconds. Error code: " + str(response_exc))
-            time.sleep(30)
+    reddit = reddit_login(login_info)
+    comments = comment_streams(reddit, targets)
+    submissions = submission_streams(reddit, targets)
+    logger.info('Reddit login successful.')
+    return {
+        "reddit": reddit, "comments": comments, "submissions": submissions,
+    }
 
 
 def comment_streams(reddit: praw.Reddit, targets: list) -> dict:
@@ -85,6 +126,7 @@ def submission_streams(reddit: praw.Reddit, targets: list) -> dict:
     return streams
 
 
+@main_error_handler
 def get_image_links(reddit: praw.Reddit) -> list:
     """
     Searches target CardBelcher subreddit for image links.
@@ -421,6 +463,7 @@ def submission_reply(submission_data: praw.Reddit.submission, image_links: list)
     print("Submission reply successful: " + submission_data.permalink)
 
 
+@main_error_handler
 def comment_action(comment_stream, image_links: list):
     for comment in comment_stream:
         try:
@@ -430,11 +473,12 @@ def comment_action(comment_stream, image_links: list):
             break
 
 
+@main_error_handler
 def submission_action(submission_stream, image_links: list):
     for submission in submission_stream:
         try:
-            if comment_requires_action(submission):
-                comment_reply(submission, image_links)
+            if submission_requires_action(submission):
+                submission_reply(submission, image_links)
         except AttributeError:  # No comments in stream results in None
             break
 
@@ -442,16 +486,9 @@ def submission_action(submission_stream, image_links: list):
 # Setup, run only once
 if __name__ == "__main__":
     print("Init...")
-    target_subreddits = ["magicthecirclejerking", "MTGCardBelcher_dev"]
-    logger = logging.getLogger(__name__)
-    logging.basicConfig(
-        filename="log.txt", encoding='utf-8', level=logging.INFO,
-        format='%(asctime)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M;%S')
-    logger.info('New Reddit session start.')
 
     # Create a text file (here oauth.txt) with five rows
     # or any other preferred method of delivering login info.
-
     # 1. Client id
     # 2. Secret
     # 3. Account password
@@ -459,38 +496,25 @@ if __name__ == "__main__":
     # 5. Account username
 
     oauth = "oauth.txt"
-    image_refresh_timer = time.time()  # Image submission fetch timer
+    logs = "log.txt"
+    logger = start_logger(logs)
+    logger.info('New Reddit session start.')
+    target_subreddits = ["magicthecirclejerking", "MTGCardBelcher_dev"]
     reddit_streams = login_sequence(oauth, target_subreddits)  # Open Reddit
-    image_submission_links = reddit_streams["images"]  # Fetch joke images once before main loop
+    image_refresh_timer = time.time()  # Image submission fetch timer
+    image_submission_links = get_image_links(reddit_streams["reddit"])  # Fetch joke images once before main loop
     logger.info('Reddit session initiation complete.')
     print("...init complete.")
 
     # Main loop
     while True:
-        try:
-            if time.time() - image_refresh_timer > 1800:  # Get image links every 30 minutes
-                image_refresh_timer = time.time()
-                image_submission_links = get_image_links(reddit_streams["reddit"])
+        if time.time() - image_refresh_timer > 1800:  # Get image links every 30 minutes
+            image_refresh_timer = time.time()
+            image_submission_links = get_image_links(reddit_streams["reddit"])
 
-            for sub in target_subreddits:
-                comment_action(reddit_streams["comments"][sub], image_submission_links)
-                submission_action(reddit_streams["submissions"][sub], image_submission_links)
-
-        except prawcore.ServerError as server_e:
-            logger.warning("Server error, trying again in 5 minutes. Error code: " + str(server_e))
-            time.sleep(300)
-            reddit_streams = login_sequence(oauth, target_subreddits)
-        except prawcore.RequestException as request_e:
-            logger.warning("Incomplete HTTP request, trying again in 10 seconds. Error code: " + str(request_e))
-            time.sleep(10)
-            reddit_streams = login_sequence(oauth, target_subreddits)
-        except prawcore.ResponseException as response_e:
-            logger.warning("HTTP request response error, trying again in 30 seconds. Error code: " + str(response_e))
-            time.sleep(30)
-            reddit_streams = login_sequence(oauth, target_subreddits)
-        except praw.exceptions.RedditAPIException as api_e:
-            logger.warning("APIException. Error code: " + str(api_e))
-            time.sleep(30)
+        for sub in target_subreddits:
+            comment_action(reddit_streams["comments"][sub], image_submission_links)
+            submission_action(reddit_streams["submissions"][sub], image_submission_links)
 
         # Reddit has in-built sleep already but just in case sleep again
         time.sleep(5)
