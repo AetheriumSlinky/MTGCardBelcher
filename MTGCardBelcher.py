@@ -23,8 +23,7 @@ def login_error_handler(func):
     def wrapper(*args, **kwargs):
         while True:
             try:
-                func(*args, **kwargs)
-                break
+                return func(*args, **kwargs)
             except prawcore.ServerError as server_err:
                 logger.warning("Server error, retry in 5 minutes. Error code: " + str(server_err))
                 time.sleep(300)
@@ -44,8 +43,7 @@ def main_error_handler(func):
     def wrapper(*args, **kwargs):
         while True:
             try:
-                func(*args, **kwargs)
-                break
+                return func(*args, **kwargs)
             except prawcore.ServerError as server_err:
                 logger.warning("Server error, retry in 5 minutes. Error code: " + str(server_err))
                 time.sleep(300)
