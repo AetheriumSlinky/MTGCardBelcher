@@ -558,8 +558,8 @@ if __name__ == "__main__":
     # 4. User Agent information
     # 5. Account username
 
-    oauth = "P:\\oauth.txt"
-    logs = "P:\\log.txt"
+    oauth = "oauth.txt"
+    logs = "log.txt"
     logger = start_logger(logs)  # Start logging
     logger.info('New Reddit session start.')
     target_subreddits = ["magicthecirclejerking", "MTGCardBelcher_dev"]  # Targets list
