@@ -3,7 +3,7 @@
 A joke bot for Reddit. See [/r/MTGCardBelcher](https://www.reddit.com/r/MTGCardBelcher/)
 and the target audience [/r/magicthecirclejerking](https://www.reddit.com/r/magicthecirclejerking/).
 
-RIP [original LardFetcher](https://github.com/MTGLardFetcher/MTGLardFetcher)
+RIP [original /u/MTGLardFetcher](https://github.com/MTGLardFetcher/MTGLardFetcher) :(
 
 # Features
 
@@ -18,7 +18,7 @@ RIP [original LardFetcher](https://github.com/MTGLardFetcher/MTGLardFetcher)
 
 # Requirements
 
-Written in Python 3.12 and uses the 7.7.1 version of the [PRAW module](https://praw.readthedocs.io/en/stable/).
+Written in Python 3.12 and uses the 7.8.1 version of the [PRAW module](https://praw.readthedocs.io/en/stable/).
 
 See requirements.txt for further information.
 
