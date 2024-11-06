@@ -2,7 +2,7 @@
 
 import requests
 
-from functions.base_logger import logger
+from func.base_logger import logger
 
 
 def get_scryfall_image(cardname: str) -> str:

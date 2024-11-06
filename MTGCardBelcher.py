@@ -3,10 +3,10 @@
 import time
 
 from data.configs import oauth, target_subreddits
-from functions.base_logger import logger
-from functions.timer import RefreshTimer
-from functions.reddit_login import login_sequence
-import functions.reddit_actions as r
+from func.base_logger import logger
+from func.timer import RefreshTimer
+from func.reddit_login import login_sequence
+import func.reddit_actions as r
 
 
 def main():
@@ -22,7 +22,7 @@ def main():
 
     # Main loop
     while True:
-        if image_refresh.timer():  # Has 30 minutes passed?
+        if image_refresh.recurring_timer():  # Has 30 minutes passed?
             image_submission_links = r.get_image_links(reddit_streams["reddit"])
 
         for sub in target_subreddits:

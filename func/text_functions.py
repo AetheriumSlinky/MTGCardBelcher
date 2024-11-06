@@ -3,10 +3,10 @@
 import random
 import re
 
-from functions.base_logger import logger
+from func.base_logger import logger
 import data.creature_replies as creature_replies
 import data.rastamon_cards as rastamon
-import functions.scryfall_functions as sf
+import func.scryfall_functions as sf
 
 
 class BotReplyText:

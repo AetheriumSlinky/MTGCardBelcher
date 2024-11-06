@@ -6,7 +6,7 @@ import praw
 import praw.exceptions
 import prawcore
 
-from functions.base_logger import logger
+from func.base_logger import logger
 
 
 def login_error_handler(func):

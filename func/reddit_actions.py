@@ -7,9 +7,9 @@ import praw.exceptions
 import prawcore
 
 from data.configs import oauth, target_subreddits
-from functions.base_logger import logger
-from functions.text_functions import get_regex_bracket_matches, generate_reply_text
-from functions.reddit_login import login_sequence
+from func.base_logger import logger
+from func.text_functions import get_regex_bracket_matches, generate_reply_text
+from func.reddit_login import login_sequence
 
 
 def main_error_handler(func):
