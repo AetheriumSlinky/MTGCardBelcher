@@ -31,11 +31,11 @@ Create a text file containing your authentication information,\
 each item separated by a line break.\
 Do not include any other characters besides the info strings.
 
-        1. User Agent information
-        2. Account Username
-        3. Account Password
-        4. Client ID
-        5. Secret
+    1. User Agent information
+    2. Account Username
+    3. Account Password
+    4. Client ID
+    5. Secret
 
 Replace "oauth.txt" in /data/configs.py with your text file.\
 In the same file you can also configure the subreddits you want this to work in.
