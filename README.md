@@ -32,7 +32,7 @@ See requirements.txt for further information.
         Bot user agent text
         Bot username
 
-    Replace "oauth.txt" with your text file.
+    Replace "oauth.txt" in /data/configs.py with your text file.
 
     Run:
     python MTGCardBelcher.py 
