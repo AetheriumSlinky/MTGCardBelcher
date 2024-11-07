@@ -6,7 +6,7 @@ import re
 import praw.exceptions
 import prawcore
 
-from data.configs import oauth, target_subreddits
+from data.configs import oauth, target_subreddits, submissions_subreddits
 from func.base_logger import logger
 from func.text_functions import get_regex_bracket_matches, generate_reply_text
 from func.reddit_login import login_sequence
@@ -42,17 +42,18 @@ def main_error_handler(func):
 @main_error_handler
 def get_image_links(reddit: praw.Reddit) -> list:
     """
-    Searches target CardBelcher subreddit for image links.
+    Searches target subreddits for image links.
     :param reddit: Reddit.
     :return: A list of image candidate links.
     """
-    card_belcher = reddit.subreddit('MTGCardBelcher')
     image_candidates = ['https://i.redd.it/pcmd6d3o1oad1.png']  # Jollyver is always an option - RIP LardFetcher
-    for image_submissions in card_belcher.new(limit=1000):  # Get a looot of images
-        if "/r/MTGCardBelcher" not in image_submissions.url:
-            if (re.search('(i.redd.it|i.imgur.com)', image_submissions.url)
-                    and image_submissions.link_flair_text == "Card Submission"):  # Check for correct flair
-                image_candidates.append(image_submissions.url)
+    for fetchable_sub in submissions_subreddits:  # Search all subreddits defined as sources for images
+        fetchable = reddit.subreddit(fetchable_sub)
+        for image_submission in fetchable.new(limit=1000):  # Get a looot of images
+            if fetchable_sub not in image_submission.url:
+                if (re.search('(i.redd.it|i.imgur.com)', image_submission.url)
+                        and image_submission.link_flair_text == "Approved Submission"):  # Check for correct flair
+                    image_candidates.append(image_submission.url)
     logger.info("Found " + str(len(image_candidates)) + " valid image submissions.")
     return image_candidates
 

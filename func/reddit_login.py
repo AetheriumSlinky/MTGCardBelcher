@@ -43,11 +43,11 @@ def reddit_login(login_info) -> praw.Reddit:
         info = oauth_file.read().splitlines()
 
     reddit = praw.Reddit(
-        client_id=info[0],
-        client_secret=info[1],
+        user_agent=info[0],
+        username=info[1],
         password=info[2],
-        user_agent=info[3],
-        username=info[4],
+        client_id=info[3],
+        client_secret=info[4],
     )
     return reddit
 
