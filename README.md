@@ -1,9 +1,12 @@
 # What is this?
 
-A joke bot for Reddit. See [/r/MTGCardBelcher](https://www.reddit.com/r/MTGCardBelcher/)
+A joke bot for Reddit. Call it with [[double brackets\]\] on Reddit\
+-- and it will fetch you a random joke card image.
+
+See [/r/MTGCardBelcher](https://www.reddit.com/r/MTGCardBelcher/) for image sources\
 and the target audience [/r/magicthecirclejerking](https://www.reddit.com/r/magicthecirclejerking/).
 
-RIP [original /u/MTGLardFetcher](https://github.com/MTGLardFetcher/MTGLardFetcher) :(
+Rest in Peace, [original /u/MTGLardFetcher](https://github.com/MTGLardFetcher/MTGLardFetcher). You died for Reddit's sins.
 
 # Features
 
@@ -24,15 +27,19 @@ See requirements.txt for further information.
 
 # How do I run it
 
-    Create a text file containing your authentication information,
-    each item separated by a line break.
-        Client ID
-        Secret
-        Bot account password
-        Bot user agent text
-        Bot username
+Create a text file containing your authentication information,\
+each item separated by a line break.\
+Do not include any other characters besides the info strings.
 
-    Replace "oauth.txt" in /data/configs.py with your text file.
+        1. User Agent information
+        2. Account Username
+        3. Account Password
+        4. Client ID
+        5. Secret
 
-    Run:
-    python MTGCardBelcher.py 
+Replace "oauth.txt" in /data/configs.py with your text file.\
+In the same file you can also configure the subreddits you want this to work in.
+
+Finally, run:
+
+    MTGCardBelcher.py 
