@@ -3,7 +3,7 @@
 
 class RastamonCard:
     """
-    A class to represent a Rastamonliveup card.
+    A class to represent a Rastamonliveup card object.
     """
     def __init__(self, proper_name: str, spellings: list, image: str):
         """
@@ -16,16 +16,21 @@ class RastamonCard:
         self.spellings = spellings
         self.image = image
 
-    def find_name(self, suspect_name: str):
+    def __str__(self):
+        return f"Attributes: {self.__dict__}"
+
+    @staticmethod
+    def find_card(suspect_name: str, cards: list) -> "RastamonCard":
         """
         Finds the proper name of the Rastamonliveup card from the pool of alternate spellings.
         :param suspect_name: Suspected Rastamonliveup cardname.
-        :return: Proper name or empty string if no match is found.
+        :param cards: A list of Rastamonliveup card objects.
+        :return: Corresponding RastamonCard object if a match is found, an empty RastamonCard if no match.
         """
-        if suspect_name in self.spellings:
-            return self.proper_name
-        else:
-            return ""
+        for card in cards:
+            if suspect_name in card.spellings:
+                return card
+        return RastamonCard("", [], "")
 
 
 # Create all Rastamonliveup cards
@@ -74,5 +79,7 @@ sebi_gyandu = RastamonCard("Sebi Gyandu",
     "https://i.redd.it/uvqqezzgp4dd1.jpeg")
 
 # List-ify cards for searching
-cards = [simbaba, japudi, kuka_beyo, tobo_dibi, bosgwan, mwabdi,
-         kadyoba, komdege_swigu, dodonbe_dugdjita, sembizi_wamdeyo, sebi_gyandu]
+rastamon_list = [
+    simbaba, japudi, kuka_beyo, tobo_dibi, bosgwan, mwabdi,
+    kadyoba, komdege_swigu, dodonbe_dugdjita, sembizi_wamdeyo, sebi_gyandu,
+]

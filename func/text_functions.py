@@ -4,8 +4,9 @@ import random
 import re
 
 from func.base_logger import logger
-import data.creature_replies as creature_replies
-import data.rastamon_cards as rastamon
+from func.timer import RefreshTimer
+from data.rastamon_cards import RastamonCard, rastamon_list
+import data.replies as replies
 import func.scryfall_functions as sf
 
 
@@ -13,32 +14,35 @@ class BotReplyText:
     """
     A class to represent a bot reply text divided into text elements.
     """
-    def __init__(self, header: str = "", body: str = "", flavour: str = "",
-                 footer: str = ""):
+    def __init__(self, header: str = "", body: str = "",
+                 flavour: str = "", footer: str = ""):
         """
         Constructs the bot reply text object elements.
         :param header: Element that contains the entity delivering the cards.
         :param body: Element that contains the card links.
-        :param flavour: Element that contains the flavour text.
-        :param footer: Element that contains the footer text.
+        :param flavour: Element that contains the optional flavour text.
+        :param footer: Element that contains the standard footer text.
         """
         self.header = header
         self.body = body
         self.flavour = flavour
         self.footer = footer
 
+    def __str__(self):
+        return f"Attributes: {self.__dict__}"
+
     def body_add_text(self, text: str):
         """
-        Adds a text string to the body parameter.
+        Adds / appends a text string to the body parameter.
         :param text: A string of text to be added to the text body parameter.
         """
-        self.body += f'''{text}'''
+        self.body += text
 
 
 def get_regex_bracket_matches(text: str) -> list:
     """
     Regex searches for double square brackets (bot call) in text. Accommodates old/mobile/new Reddit.
-    :param text: Text to search.
+    :param text: String to search.
     :return: A list of all matches.
     """
     browser_double_bracket_matches = re.findall(r'''\\\[\\\[([^\\\[\]]+)\\]\\]''', text)
@@ -47,20 +51,43 @@ def get_regex_bracket_matches(text: str) -> list:
     return all_matches
 
 
-def rastamon_card_name_and_link(name: str) -> tuple:
+def set_revel(reply_text: BotReplyText, cardname: str) -> BotReplyText:
     """
-    Provided with a suspected Rastamonliveup card name,
-    it finds the corresponding proper name and link to the card image.
-    :param name: A suspected card name, probably from a regex match.
-    :return: A tuple(proper name, link to card image).
+    Sets the bot reply text elements for the special Revel in Riches reply.
     """
+    reply_text.body_add_text(f'''[{cardname}](https://i.redd.it/7jkequbnkrzd1.png)\n\n''')
+    return reply_text
 
-    # If a match is found return proper name and link to card image
-    for creature in rastamon.cards:
-        if creature.find_name(name.casefold()):
-            return creature.proper_name, creature.image
-    return "", ""
 
+def set_negate(reply_text: BotReplyText, cardname: str) -> BotReplyText:
+    """
+    Sets the bot reply text elements for the special Negate reply.
+    """
+    reply_text.header = replies.negate_header
+    reply_text.body_add_text(f'''[{cardname}](https://i.redd.it/ebgrvw7grwzd1.png)\n\n''')
+    reply_text.flavour = replies.negate_flavour
+    return reply_text
+
+
+def set_rastamon(reply_text: BotReplyText, rastamon_card: RastamonCard) -> BotReplyText:
+    """
+    Sets the bot reply text elements for the special Rastamonliveup reply.
+    """
+    reply_text.header = replies.rastamon_header
+
+    if rastamon_card.proper_name == "Kuka Beyo":
+        reply_text.body_add_text(f'''[{rastamon_card.proper_name}]'''
+                                 f'''({rastamon_card.image}) :)\n\n''')  # Override to add the smiley
+    else:
+        reply_text.body_add_text(f'''[{rastamon_card.proper_name}]'''  # Cardname with proper spelling
+                                 f'''({rastamon_card.image})\n\n''')  # Card image
+
+    if rastamon_card.proper_name == "Sebi Gyandu":
+        reply_text.flavour = "_Tell the children the truth_\n\n"  # Tell the children the truth
+    else:
+        reply_text.flavour = "\n"
+
+    return reply_text
 
 
 def generate_reply_text(text: str, links: list) -> str:
@@ -70,75 +97,61 @@ def generate_reply_text(text: str, links: list) -> str:
     :param links: A list of joke image link candidates.
     :return: Fully formatted reply text.
     """
-
     reply = BotReplyText()
-    regex_matches = get_regex_bracket_matches(text)
 
     # Determines whether a regular reply is delivered or if one of the special modes is chosen instead
-    choose_special = random.randint(-1, 1001)
+    choose_special = random.randint(0, 1001)
 
-    if choose_special == -1:  # Special Eldrazi, text-only
-        reply.body = creature_replies.eldrazi
-        logger.info("Easter egg Eldrazi Annihilation delivered.")
+    if choose_special == 0:  # Text-only replies, no links
+        reply.body = random.choice(replies.special_replies)
+        logger.warning("Easter egg with no image links delivered. Please investigate reception.")
 
-    elif choose_special == 0:  # Special shagging monkes, static image link only
-        reply.body = creature_replies.orangutan
-        logger.info("Easter egg Uktabi Orangutan delivered.")
-
-    elif choose_special == 1:  # Special phyrexian oil
-        reply.header = creature_replies.phyrexian
-        logger.info("Easter egg Phyrexian oil delivered.")
-
-    elif choose_special == 2:  # Special licid mind injection
-        reply.header = creature_replies.licid
-        logger.info("Easter egg Licids delivered.")
-
-    elif choose_special == 3:  # Special Dreadmaw
-        reply.header = creature_replies.dreadmaw
-        logger.info("Easter egg Colossal Dreadmaw delivered.")
-
-    elif choose_special == 4:  # Special hungery Yargle
-        reply.header = creature_replies.yargle
-        logger.info("Easter egg Yargle delivered.")
-
-    elif choose_special == 5:  # Special grumpy bot
-        reply.header = creature_replies.grumpy
-        logger.info("Easter egg 'Sod Off' delivered.")
+    elif choose_special == 1:  # Special delivery line, yes links
+        reply.header = random.choice(replies.special_types)
+        logger.info("Easter egg header reply delivered.")
 
     else:  # The normal mode - determine a random creature type
-        reply.header = creature_replies.generic_creature
+        reply.header = replies.random_creature_header(replies.generic_types)
 
-    # If there is only a single card to fetch get a random flavour text from Scryfall
-    if len(regex_matches) == 1:
-        reply.flavour = f'''_{sf.get_scryfall_flavour()}_\n\n'''
-
-    # If neither no-card links special mode was chosen execute normal mode
+    # If a reply with a header chosen add links and all
     if choose_special >= 1:
 
-        # Attempt to fetch regex matches and associated exact card name match from Scryfall
+        # Find double bracket matches
+        regex_matches = get_regex_bracket_matches(text)
+
+        # For each regex match loop de loop
         for cardname in regex_matches:
             scryfall_image = sf.get_scryfall_image(cardname)
-            rastamon_card = rastamon_card_name_and_link(cardname)
+            rastamon_card = RastamonCard.find_card(cardname, rastamon_list)
+
+            # Some overrides for Revel in Riches
+            if cardname.casefold() == "revel in riches":
+                reply = set_revel(reply, cardname)
+
+            # Some overrides for Negate copypasta
+            elif cardname.casefold() == "negate" and negate_timer.single_timer():  # Has a day passed since last call?
+                negate_timer.new_expiry_time(60 * 60 * 24)  # Set new expiry in a day from now
+                reply = set_negate(reply, cardname)
+                logger.info("Negate flavour used up for today. See you tomorrow!")
 
             # Some overrides for Rastamonliveup cards
-            if rastamon_card[0]:
-                reply.header = "Rastamonliveup has delivered the cards you're looking for:\n\n"
-                reply.body_add_text(f'''[{rastamon_card[0]}]'''
-                                    f'''({rastamon_card[1]})\n\n''')
-                if rastamon_card[0] == "Kuka Beyo":
-                    reply.body = f'''[Kuka Beyo]({rastamon_card[1]}) :)\n\n'''
-                    reply.flavour = ""
-                if rastamon_card[0] == "Sebi Gyandu":
-                    reply.flavour = "_Tell the children the truth_\n\n"
+            elif rastamon_card.proper_name:
+                reply = set_rastamon(reply, rastamon_card)
+                logger.info("Tell the children the truth.")
 
             # If a real cardname matches the regex make a Scryfall link
             elif scryfall_image:
                 reply.body_add_text(f'''[{cardname}]({random.choice(links)})'''
-                                    f''' - ([sf]({scryfall_image}))\n\n''')
+                                    f''' - ([SF]({scryfall_image}))\n\n''')
 
             # No real cardname matches, no Scryfall link
             else:
                 reply.body_add_text(f'''[{cardname}]({random.choice(links)})\n\n''')
+
+        # If there is only a single card to fetch get a random flavour text from Scryfall
+        # Also check if a flavour already exists from an override
+        if len(regex_matches) == 1 and not reply.flavour:
+            reply.flavour = f'''_{sf.get_scryfall_flavour()}_\n\n'''
 
     # Add the standard footer text
     reply.footer = "*********\n\nSubmit your content at: r/MTGCardBelcher"
@@ -146,3 +159,8 @@ def generate_reply_text(text: str, links: list) -> str:
     reply_text = f'''{reply.header}{reply.body}{reply.flavour}{reply.footer}'''
 
     return reply_text
+
+
+# This timer is set for the Negate special flavour so that it's not called too often (once a day)
+# Starts at 0 so that the reply is available immediately after each bot restart
+negate_timer = RefreshTimer(0)
