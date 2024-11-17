@@ -20,6 +20,8 @@ rastamon_header = "Rastamonliveup has delivered the cards you're looking for:\n\
 # Special Negate header
 negate_header = "Desolatormagic is fuming at you and your stupid cards:\n\n"
 
+negate_spellings = ["negate", "naegate", "negaete", "naegaete", "nægate", "negæte", "nægæte"]
+
 # Special Negate flavour
 negate_flavour = (
     "_Before this gets deleted by reddit admins, this asshole took it completely out of context. "

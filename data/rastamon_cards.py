@@ -28,7 +28,7 @@ class RastamonCard:
         :return: Corresponding RastamonCard object if a match is found, an empty RastamonCard if no match.
         """
         for card in cards:
-            if suspect_name in card.spellings:
+            if suspect_name.casefold() in card.spellings:
                 return card
         return RastamonCard("", [], "")
 

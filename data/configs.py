@@ -16,3 +16,6 @@ target_subreddits = ["magicthecirclejerking", "MTGCardBelcher_dev"]
 
 # Which subs is this bot fetching from?
 submissions_subreddits = ["MTGCardBelcher"]
+
+# Scryfall headers, required for Scryfall API usage
+sf_headers = {'user-agent': 'MTGCardBelcher/1.1.0', "accept": "*/*"}

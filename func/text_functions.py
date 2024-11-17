@@ -129,7 +129,7 @@ def generate_reply_text(text: str, links: list) -> str:
                 reply = set_revel(reply, cardname)
 
             # Some overrides for Negate copypasta
-            elif cardname.casefold() == "negate" and negate_timer.single_timer():  # Has a day passed since last call?
+            elif cardname.casefold() in replies.negate_spellings and negate_timer.single_timer():  # Has a day passed since last call?
                 negate_timer.new_expiry_time(60 * 60 * 24)  # Set new expiry in a day from now
                 reply = set_negate(reply, cardname)
                 logger.info("Negate flavour used up for today. See you tomorrow!")
