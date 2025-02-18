@@ -2,32 +2,44 @@
 
 import time
 
-from data.configs import oauth, target_subreddits
+from data.configs import oauth, target_subreddits, submissions_subreddits
 from func.base_logger import logger
 from func.timer import RefreshTimer
-from func.reddit_login import login_sequence
+from func.reddit_login import try_login_loop
+from data.exceptions import MainOperationException, FatalLoginError
 import func.reddit_actions as r
 
 
 def main():
-    """Main loop."""
+    """Main."""
     # Setup
     print("Init...")
     logger.info('New Reddit session start.')
-    reddit_streams = login_sequence(oauth, target_subreddits)  # Open Reddit streams
     image_refresh = RefreshTimer(1800)  # Joke image submissions fetch timer
-    image_submission_links = r.get_image_links(reddit_streams["reddit"])
+
+    # Login
+    reddit_streams = try_login_loop(oauth, target_subreddits)  # Open Reddit streams
+    image_submission_links = r.get_image_links(reddit_streams.reddit, submissions_subreddits) # Fetch the images
+
     logger.info('Reddit session initiation complete.')
     print("...init complete.")
 
     # Main loop
     while True:
-        if image_refresh.recurring_timer():  # Has 30 minutes passed?
-            image_submission_links = r.get_image_links(reddit_streams["reddit"])
+        try:
+            if image_refresh.recurring_timer():  # Has 30 minutes passed?
+                image_submission_links = r.get_image_links(reddit_streams.reddit, submissions_subreddits)
 
-        for sub in target_subreddits:
-            r.comment_action(reddit_streams["comments"][sub], image_submission_links)
-            r.submission_action(reddit_streams["submissions"][sub], image_submission_links)
+            for sub in target_subreddits:
+                r.comment_action(reddit_streams.subreddits[sub].comments, image_submission_links)
+                r.submission_action(reddit_streams.subreddits[sub].submissions, image_submission_links)
+
+        except MainOperationException:
+            reddit_streams = try_login_loop(oauth, target_subreddits)
+
+        except FatalLoginError as e:
+            print(e)
+            break
 
         # Reddit has in-built sleep already but just in case sleep again
         time.sleep(5)

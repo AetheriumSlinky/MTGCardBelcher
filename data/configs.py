@@ -18,4 +18,4 @@ target_subreddits = ["magicthecirclejerking", "MTGCardBelcher_dev"]
 submissions_subreddits = ["MTGCardBelcher"]
 
 # Scryfall headers, required for Scryfall API usage
-sf_headers = {'user-agent': 'MTGCardBelcher/1.1.0', "accept": "*/*"}
+sf_headers = {'user-agent': 'MTGCardBelcher/1.2.0', "accept": "*/*"}

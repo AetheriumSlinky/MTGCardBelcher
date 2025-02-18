@@ -6,48 +6,48 @@ import re
 import praw.exceptions
 import prawcore
 
-from data.configs import oauth, target_subreddits, submissions_subreddits
+from data.exceptions import MainOperationException
 from func.base_logger import logger
 from func.text_functions import get_regex_bracket_matches, generate_reply_text
-from func.reddit_login import login_sequence
 
 
 def main_error_handler(func):
     """
-    Handles errors during normal operation. Attempts re-login if all else fails.
+    Raises errors during normal operation.
     """
     def wrapper(*args, **kwargs):
         """Wrapper."""
-        while True:
-            try:
-                return func(*args, **kwargs)
-            except prawcore.ServerError as server_err:
-                logger.warning("Server error, retry in 5 minutes. Error code: " + str(server_err))
-                time.sleep(300)
-                login_sequence(oauth, target_subreddits)
-            except prawcore.RequestException as request_exc:
-                logger.warning("Incomplete HTTP request, retry in 10 seconds. Error code: " + str(request_exc))
-                time.sleep(10)
-                login_sequence(oauth, target_subreddits)
-            except prawcore.ResponseException as response_exc:
-                logger.warning("HTTP request response error, retry in 30 seconds. Error code: " + str(response_exc))
-                time.sleep(30)
-                login_sequence(oauth, target_subreddits)
-            except praw.exceptions.RedditAPIException as api_e:
-                logger.warning("APIException. Error code: " + str(api_e))
-                time.sleep(30)
+        try:
+            return func(*args, **kwargs)
+        except prawcore.ServerError as server_err:
+            logger.warning("Server error, retry in 5 minutes. Error code: " + str(server_err))
+            time.sleep(300)
+            raise MainOperationException
+        except prawcore.RequestException as request_exc:
+            logger.warning("Incomplete HTTP request, retry in 10 seconds. Error code: " + str(request_exc))
+            time.sleep(10)
+            raise MainOperationException
+        except prawcore.ResponseException as response_exc:
+            logger.warning("HTTP request response error, retry in 30 seconds. Error code: " + str(response_exc))
+            time.sleep(30)
+            raise MainOperationException
+        except praw.exceptions.RedditAPIException as api_e:
+            logger.warning("APIException. Error code: " + str(api_e))
+            time.sleep(30)
+            raise MainOperationException
     return wrapper
 
 
 @main_error_handler
-def get_image_links(reddit: praw.Reddit) -> list:
+def get_image_links(reddit: praw.Reddit, fetchable_subs: list) -> list:
     """
     Searches target subreddits for image links.
-    :param reddit: Reddit.
+    :param reddit: The Reddit instance.
+    :param fetchable_subs: A list of subreddits where the image submissions are found.
     :return: A list of image candidate links.
     """
     image_candidates = ['https://i.redd.it/pcmd6d3o1oad1.png']  # Jollyver is always an option - RIP LardFetcher
-    for fetchable_sub in submissions_subreddits:  # Search all subreddits defined as sources for images
+    for fetchable_sub in fetchable_subs:  # Search all subreddits defined as sources for images
         fetchable = reddit.subreddit(fetchable_sub)
         for image_submission in fetchable.new(limit=1000):  # Get a looot of images
             if fetchable_sub not in image_submission.url:
