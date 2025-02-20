@@ -58,6 +58,36 @@ def get_image_links(reddit: praw.Reddit, fetchable_subs: list) -> list:
     return image_candidates
 
 
+@main_error_handler
+def comment_action(comment_stream, image_links: list):
+    """
+    Executes check and reply for a comment.
+    :param comment_stream: The praw comment stream.
+    :param image_links: Image link candidates.
+    """
+    for comment in comment_stream:
+        try:
+            if comment_requires_action(comment):
+                comment_reply(comment, image_links)
+        except AttributeError:  # No comments in stream results in None
+            break
+
+
+@main_error_handler
+def submission_action(submission_stream, image_links: list):
+    """
+    Executes check and reply for a submission.
+    :param submission_stream: The praw submission stream.
+    :param image_links: Image link candidates.
+    """
+    for submission in submission_stream:
+        try:
+            if submission_requires_action(submission):
+                submission_reply(submission, image_links)
+        except AttributeError:  # No comments in stream results in None
+            break
+
+
 def comment_requires_action(comment_data: praw.Reddit.comment) -> bool:
     """
     Checks whether a comment requires action, is by the bot itself, has no matches, or is excluded.
@@ -87,8 +117,8 @@ def comment_requires_action(comment_data: praw.Reddit.comment) -> bool:
 
     else:  # Eligible for reply
         logger.info(
-            "Should reply to eligible comment (" + str(comment_double_bracket_matches) + "): "
-            + comment_data.url
+            "Should reply to eligible comment (" + str(comment_double_bracket_matches) + "): https://www.reddit.com"
+            + comment_data.permalink
         )
         return True
 
@@ -126,8 +156,8 @@ def submission_requires_action(submission_data: praw.Reddit.submission) -> bool:
 
     else:  # Eligible for reply
         logger.info(
-            "Should reply to eligible post (" + str(submission_double_bracket_matches) + "): "
-            + submission_data.url
+            "Should reply to eligible post (" + str(submission_double_bracket_matches) + "): https://www.reddit.com"
+            + submission_data.permalink
         )
         return True
 
@@ -140,8 +170,8 @@ def comment_reply(comment_data: praw.Reddit.comment, image_links: list):
     """
     reply_text = generate_reply_text(comment_data.body, image_links)
     comment_data.reply(reply_text)
-    logger.info("Comment reply successful: " + comment_data.url)
-    print("Comment reply successful: " + comment_data.url)
+    logger.info("Comment reply successful: https://www.reddit.com" + comment_data.permalink)
+    print("Comment reply successful: https://www.reddit.com" + comment_data.permalink)
 
 
 def submission_reply(submission_data: praw.Reddit.submission, image_links: list):
@@ -152,35 +182,5 @@ def submission_reply(submission_data: praw.Reddit.submission, image_links: list)
     """
     reply_text = generate_reply_text(submission_data.selftext, image_links)
     submission_data.reply(reply_text)
-    logger.info("Submission reply successful: " + submission_data.url)
-    print("Submission reply successful: " + submission_data.url)
-
-
-@main_error_handler
-def comment_action(comment_stream, image_links: list):
-    """
-    Executes check and reply for a comment.
-    :param comment_stream: The praw comment stream.
-    :param image_links: Image link candidates.
-    """
-    for comment in comment_stream:
-        try:
-            if comment_requires_action(comment):
-                comment_reply(comment, image_links)
-        except AttributeError:  # No comments in stream results in None
-            break
-
-
-@main_error_handler
-def submission_action(submission_stream, image_links: list):
-    """
-    Executes check and reply for a submission.
-    :param submission_stream: The praw submission stream.
-    :param image_links: Image link candidates.
-    """
-    for submission in submission_stream:
-        try:
-            if submission_requires_action(submission):
-                submission_reply(submission, image_links)
-        except AttributeError:  # No comments in stream results in None
-            break
+    logger.info("Submission reply successful: https://www.reddit.com" + submission_data.permalink)
+    print("Submission reply successful: https://www.reddit.com" + submission_data.permalink)

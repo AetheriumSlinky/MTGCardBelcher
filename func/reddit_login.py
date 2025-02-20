@@ -27,8 +27,8 @@ class SubredditData:
     """
     def __init__(self, target: str, reddit: praw.Reddit):
         self.target = target
-        self.submissions = reddit.subreddit(target).stream.submissions(skip_existing=True, pause_after=2)
-        self.comments = reddit.subreddit(target).stream.comments(skip_existing=True, pause_after=2)
+        self.submissions = reddit.subreddit(target).stream.submissions(skip_existing=True, pause_after=1)
+        self.comments = reddit.subreddit(target).stream.comments(skip_existing=True, pause_after=1)
 
 
 def login_error_handler(func):
