@@ -74,21 +74,21 @@ def comment_requires_action(comment_data: praw.Reddit.comment) -> bool:
     ]
 
     if comment_data.author.name == ('MTGCardBelcher' or 'MTGCardFetcher'):  # Bots
-        logger.info("Bot will not reply to itself or to the real CardFetcher (comment). " + comment_data.permalink)
+        logger.info("Bot will not reply to itself or to the real CardFetcher (comment). " + comment_data.id)
         return False
 
     elif not comment_double_bracket_matches:  # No regex matches
-        logger.info("No matches in comment. " + comment_data.permalink)
+        logger.info("No matches in comment. " + comment_data.id)
         return False
 
     elif None not in submission_exclusions:  # Is on exclusion list
-        logger.info("Parent submission of the comment on exclusion list. " + comment_data.permalink)
+        logger.info("Parent submission of the comment on exclusion list. " + comment_data.id)
         return False
 
     else:  # Eligible for reply
         logger.info(
             "Should reply to eligible comment (" + str(comment_double_bracket_matches) + "): "
-            + comment_data.permalink
+            + comment_data.url
         )
         return True
 
@@ -113,21 +113,21 @@ def submission_requires_action(submission_data: praw.Reddit.submission) -> bool:
     if submission_data.author.name == ("MTGCardBelcher" or "MTGCardFetcher"):  # Bots
         logger.info(
             "Bot will not reply to itself or to the real CardFetcher (submission). "
-            + submission_data.permalink)
+            + submission_data.id)
         return False
 
     elif not submission_double_bracket_matches:  # No regex matches
-        logger.info("No matches in submission. " + submission_data.permalink)
+        logger.info("No matches in submission. " + submission_data.id)
         return False
 
     elif None not in submission_exclusions:  # Is on exclusion list
-        logger.info("Submission on exclusion list. " + submission_data.permalink)
+        logger.info("Submission on exclusion list. " + submission_data.id)
         return False
 
     else:  # Eligible for reply
         logger.info(
             "Should reply to eligible post (" + str(submission_double_bracket_matches) + "): "
-            + submission_data.permalink
+            + submission_data.url
         )
         return True
 
@@ -140,8 +140,8 @@ def comment_reply(comment_data: praw.Reddit.comment, image_links: list):
     """
     reply_text = generate_reply_text(comment_data.body, image_links)
     comment_data.reply(reply_text)
-    logger.info("Comment reply successful: " + comment_data.id)
-    print("Comment reply successful: " + comment_data.permalink)
+    logger.info("Comment reply successful: " + comment_data.url)
+    print("Comment reply successful: " + comment_data.url)
 
 
 def submission_reply(submission_data: praw.Reddit.submission, image_links: list):
@@ -152,8 +152,8 @@ def submission_reply(submission_data: praw.Reddit.submission, image_links: list)
     """
     reply_text = generate_reply_text(submission_data.selftext, image_links)
     submission_data.reply(reply_text)
-    logger.info("Submission reply successful: " + submission_data.id)
-    print("Submission reply successful: " + submission_data.permalink)
+    logger.info("Submission reply successful: " + submission_data.url)
+    print("Submission reply successful: " + submission_data.url)
 
 
 @main_error_handler

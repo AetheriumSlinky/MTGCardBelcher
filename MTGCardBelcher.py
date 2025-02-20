@@ -1,5 +1,5 @@
 """MTGCardBelcher v1.1.0 by /u/MustaKotka (AetheriumSlinky)"""
-
+import sys
 import time
 
 from data.configs import oauth, target_subreddits, submissions_subreddits
@@ -18,10 +18,14 @@ def main():
     image_refresh = RefreshTimer(1800)  # Joke image submissions fetch timer
 
     # Login
-    reddit_streams = try_login_loop(oauth, target_subreddits)  # Open Reddit streams
-    image_submission_links = r.get_image_links(reddit_streams.reddit, submissions_subreddits) # Fetch the images
+    try:
+        reddit_streams = try_login_loop(oauth, target_subreddits)  # Open Reddit streams
+        image_submission_links = r.get_image_links(reddit_streams.reddit, submissions_subreddits) # Fetch the images
+    except FatalLoginError as e:
+        print(e)
+        sys.exit()
 
-    logger.info('Reddit session initiation complete.')
+    logger.info('Reddit session successfully started.')
     print("...init complete.")
 
     # Main loop
@@ -39,7 +43,7 @@ def main():
 
         except FatalLoginError as e:
             print(e)
-            break
+            sys.exit()
 
         # Reddit has in-built sleep already but just in case sleep again
         time.sleep(5)

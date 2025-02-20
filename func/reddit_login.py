@@ -20,22 +20,6 @@ class RedditData:
         for subreddit in targets:
             self.subreddits[subreddit] = SubredditData(subreddit, self.reddit)
 
-    def get_submissions(self, subreddit: str):
-        """
-        Fetches the submission stream.
-        :param subreddit: Target subreddit.
-        :return: Submission stream.
-        """
-        return self.subreddits[subreddit].submissions
-
-    def get_comments(self, subreddit: str):
-        """
-        Fetches the comments stream.
-        :param subreddit: Target subreddit.
-        :return: Comments stream.
-        """
-        return self.subreddits[subreddit].comments
-
 
 class SubredditData:
     """
@@ -97,7 +81,7 @@ def reddit_login(login_info) -> praw.Reddit:
 
 def try_login_loop(login_info, targets: list) -> RedditData:
     """
-    Tries to log in on loop perpetually.
+    Tries to log in on loop perpetually. Raises FatalLoginError if there are too many attempts to log in.
     :param login_info: A text file containing the OAuth info.
     :param targets: A list of target subreddits.
     :return: A RedditData object containing the Reddit instance and subreddit streams.
@@ -114,4 +98,4 @@ def try_login_loop(login_info, targets: list) -> RedditData:
             attempts += 1
 
     logger.critical(f"There were {attempts} failed login attempts. Stopped trying to log in. Goodbye.")
-    raise FatalLoginError
+    raise FatalLoginError("Too many failed login attemps. Exiting program. Goodbye.")
