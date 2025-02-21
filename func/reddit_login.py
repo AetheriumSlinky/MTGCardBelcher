@@ -93,7 +93,7 @@ def try_login_loop(login_info, targets: list) -> RedditData:
 
         except LoginException:
             time.sleep(2 ** attempts)
-            logger.warning(f"Exception while retrieving Reddit data during login."
+            logger.warning(f"Exception while retrieving Reddit data during login. "
                            f"Retrying after {2 ** attempts} seconds.")
             attempts += 1
 
