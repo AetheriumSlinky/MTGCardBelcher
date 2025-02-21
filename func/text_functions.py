@@ -78,12 +78,18 @@ def set_rastamon(reply_text: BotReplyText, rastamon_card: RastamonCard) -> BotRe
     if rastamon_card.proper_name == "Kuka Beyo":
         reply_text.body_add_text(f'''[{rastamon_card.proper_name}]'''
                                  f'''({rastamon_card.image}) :)\n\n''')  # Override to add the smiley
+
+    elif rastamon_card.proper_name == "Tell the children the truth":  # Triggered off of Galatians 4:16
+        reply_text.body_add_text(f'''[*{rastamon_card.proper_name}*]'''  # Proper name is Sebi Gyandu flavour
+                                 f'''({rastamon_card.image})\n\n''')  # Image links to Sebi Gyandu
+
     else:
         reply_text.body_add_text(f'''[{rastamon_card.proper_name}]'''  # Cardname with proper spelling
                                  f'''({rastamon_card.image})\n\n''')  # Card image
 
     if rastamon_card.proper_name == "Sebi Gyandu":
-        reply_text.flavour = "_Tell the children the truth_\n\n"  # Tell the children the truth
+        reply_text.flavour = "_Tell the children the truth_\n\n"  # 'Tell the children the truth' flavour
+
     else:
         reply_text.flavour = "\n"
 
@@ -128,8 +134,8 @@ def generate_reply_text(text: str, links: list) -> str:
             if cardname.casefold() == "revel in riches":
                 reply = set_revel(reply, cardname)
 
-            # Some overrides for Negate copypasta
-            elif cardname.casefold() in replies.negate_spellings and negate_timer.single_timer():  # Has a day passed since last call?
+            # Some overrides for Negate copypasta / Has a day passed since last call?
+            elif cardname.casefold() in replies.negate_spellings and negate_timer.single_timer():
                 negate_timer.new_expiry_time(60 * 60 * 24)  # Set new expiry in a day from now
                 reply = set_negate(reply, cardname)
                 logger.info("Negate flavour used up for today. See you tomorrow!")

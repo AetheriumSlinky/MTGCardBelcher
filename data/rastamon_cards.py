@@ -78,8 +78,12 @@ sebi_gyandu = RastamonCard("Sebi Gyandu",
     ["sebi gyandu"],
     "https://i.redd.it/uvqqezzgp4dd1.jpeg")
 
+galatians = RastamonCard("Tell the children the truth",
+    ["gal 4:16", "gal. 4:16", "galatians 4:16", "4:16"],
+    "https://i.redd.it/uvqqezzgp4dd1.jpeg")
+
 # List-ify cards for searching
 rastamon_list = [
-    simbaba, japudi, kuka_beyo, tobo_dibi, bosgwan, mwabdi,
-    kadyoba, komdege_swigu, dodonbe_dugdjita, sembizi_wamdeyo, sebi_gyandu,
+    simbaba, japudi, kuka_beyo, tobo_dibi, bosgwan, mwabdi, kadyoba,
+    komdege_swigu, dodonbe_dugdjita, sembizi_wamdeyo, sebi_gyandu, galatians,
 ]
