@@ -35,8 +35,12 @@ def main():
                 image_submission_links = r.get_image_links(reddit_streams.reddit, submissions_subreddits)
 
             for sub in target_subreddits:
-                r.comment_action(reddit_streams.subreddits[sub].comments, image_submission_links)
-                r.submission_action(reddit_streams.subreddits[sub].submissions, image_submission_links)
+                r.comment_action(reddit_streams.reddit,
+                                 reddit_streams.subreddits[sub].comments,
+                                 image_submission_links)
+                r.submission_action(reddit_streams.reddit,
+                                    reddit_streams.subreddits[sub].submissions,
+                                    image_submission_links)
 
         except MainOperationException:
             reddit_streams = try_login_loop(oauth, target_subreddits)
