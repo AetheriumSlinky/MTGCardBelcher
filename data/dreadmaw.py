@@ -1,16 +1,20 @@
 """Colossal Dreadmaw special."""
 
+import praw
+
 
 class DreadmawObj:
     """
     Colossal Dreadmaw ASCII art object with the number of calls made to it.
     """
-    def __init__(self):
-        self.__logical_name = "colossal dreadmaw2"
-        self.calls_count = 0
-        self.art = self.get_art(self.calls_count)
+    call_name = "colossal dreadmaw2"
 
-    def get_art(self, count):
+    def __init__(self, reddit: praw.Reddit):
+        self.reddit = reddit
+        self.calls_count: int = self.__dreadmaw_count()
+        self.art: str = self.__get_art(self.calls_count)
+
+    def __get_art(self, count) -> str:
         """
         Gets the ASCII art associated with Colossal Dreadmaw.
         :param count: Number of times the bot has been called for Colossal Dreadmaw.
@@ -37,22 +41,29 @@ class DreadmawObj:
     | It's too late.               |
     |                              |
     |                      / 6 /  \\|
-    | #{self.call_count_str(count)} C              \\  / 6 /|
+    | #{self.__call_count_str(count)} C              \\  / 6 /|
     | XLN*EN  =>Jesper Ejsing      |
     \\______________________________/\n\n''')
         return art
 
-    @classmethod
-    def get_name(cls) -> str:
+    def __dreadmaw_count(self) -> int:
         """
-        Gets the internal name of Colossal Dreadmaw. Used for checking and triggers.
-        :return: Colossal Dreadmaw's logical name.
+        Fetches the current Dreadmaw call count from Reddit.
+        :return: Number of times Dreadmaw has been called.
         """
-        name = cls().__logical_name
-        return name
+        number = int(self.reddit.comment("me0tbmp").body)
+        return number
+
+    def dreadmaw_count_increment(self):
+        """
+        Edits the post on Reddit that contains Dreadmaw's call count and updates the internal counter to match it.
+        """
+        new_count: int = int(self.reddit.comment("me0tbmp").body) + 1
+        self.reddit.comment("me0tbmp").edit(str(new_count))
+        self.calls_count = new_count
 
     @staticmethod
-    def call_count_str(count) -> str:
+    def __call_count_str(count) -> str:
         """
         Formats the number of calls into a string with a suitable number of characters.
         Raises a ValueError if the number exceeds 9999.
@@ -69,6 +80,3 @@ class DreadmawObj:
             return str(count)
         else:
             raise ValueError("Colossal Dreadmaw collector number has too many digits.")
-
-
-dreadmaw_holder = DreadmawObj()

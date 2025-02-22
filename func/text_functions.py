@@ -5,7 +5,7 @@ import re
 
 from func.base_logger import logger
 from func.timer import RefreshTimer
-from data.dreadmaw import dreadmaw_holder, DreadmawObj
+from data.dreadmaw import DreadmawObj
 from data.rastamon_cards import RastamonCard, rastamon_list
 import data.replies as replies
 import func.scryfall_functions as sf
@@ -50,18 +50,6 @@ def get_regex_bracket_matches(text: str) -> list:
     mobile_double_bracket_matches = re.findall(r'''\[\[([^\[\]]+)]]''', text)
     all_matches = browser_double_bracket_matches + mobile_double_bracket_matches  # Pray for no doubles
     return all_matches
-
-
-def set_dreadmaw(reply_text: BotReplyText) -> BotReplyText:
-    """
-    Sets the bot reply text elements for the special Colossal Dreadmaw reply.
-    """
-    reply_text.header = ''
-    reply_text.body_add_text(dreadmaw_holder.art)
-    reply_text.flavour = ('^(This content is best viewed by opening this comment directly, '
-                          'without its parent comments.)\n\n')
-    return reply_text
-
 
 def set_dreadmaw_waiting(reply_text: BotReplyText, cardname: str) -> BotReplyText:
     """
@@ -128,23 +116,11 @@ def generate_reply_text(regex_matches: list, links: list) -> str:
     reply = BotReplyText()
 
     # Some overrides for Colossal Dreadmaw
-    if DreadmawObj.get_name() in [item.casefold() for item in regex_matches]:
+    if DreadmawObj.call_name in [item.casefold() for item in regex_matches]:
         # Bypass the entire randomly generated procedure
         # and only print this particular response if Dreadmaw is mentioned even once
         choose_special = -1
-
-        # If enough time has elapsed unleash Dreadmaw
-        if dreadmaw_timer.single_timer():
-
-            # Set new expiry 5mins to 1h from now to prevent spam
-            # dreadmaw_timer.new_expiry_time(random.randint(300, 3600))
-            reply = set_dreadmaw(reply)
-            logger.info("Dreadmaw was declared as an attacker!")
-
-        # If in the middle of the cooldown still do this instead
-        else:
-            reply = set_dreadmaw_waiting(reply, "Colossal Dreadmaw")
-            logger.info("Dreadmaw is still summoning sick.")
+        reply = set_dreadmaw_waiting(reply, "Colossal Dreadmaw")
 
     # Determines whether a regular reply is delivered or if one of the special modes is chosen instead
     else:

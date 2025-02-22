@@ -2,6 +2,7 @@
 
 import time
 import re
+import random
 
 import praw
 import praw.exceptions
@@ -9,8 +10,9 @@ import prawcore
 
 from data.exceptions import MainOperationException
 from func.base_logger import logger
-from func.text_functions import (get_regex_bracket_matches, generate_reply_text,
-                                 dreadmaw_timer, dreadmaw_holder, DreadmawObj)
+from func.reddit_connection import RedditData
+from func.text_functions import get_regex_bracket_matches, generate_reply_text, dreadmaw_timer
+from data.dreadmaw import DreadmawObj
 
 
 def main_error_handler(func):
@@ -41,17 +43,17 @@ def main_error_handler(func):
 
 
 @main_error_handler
-def get_image_links(reddit: praw.Reddit, fetchable_subs: list) -> list:
+def get_image_links(reddit_data: RedditData, fetchable_subs: list) -> list:
     """
     Searches target subreddits for image links.
-    :param reddit: The Reddit instance.
+    :param reddit_data: The RedditData object.
     :param fetchable_subs: A list of subreddits where the image submissions are found.
     :return: A list of image candidate links.
     """
     image_candidates = ['https://i.redd.it/pcmd6d3o1oad1.png']  # Jollyver is always an option - RIP LardFetcher
     for fetchable_sub in fetchable_subs:  # Search all subreddits defined as sources for images
-        fetchable = reddit.subreddit(fetchable_sub)
-        for image_submission in fetchable.new(limit=1000):  # Get a looot of images
+        reddit = reddit_data.reddit
+        for image_submission in reddit.subreddit[fetchable_sub].new(limit=1000):  # Get a looot of images
             if fetchable_sub not in image_submission.url:
                 if (re.search('(i.redd.it|i.imgur.com)', image_submission.url)
                         and image_submission.link_flair_text == "Approved Submission"):  # Check for correct flair
@@ -61,41 +63,43 @@ def get_image_links(reddit: praw.Reddit, fetchable_subs: list) -> list:
 
 
 @main_error_handler
-def comment_action(reddit: praw.Reddit, comment_stream, image_links: list):
+def comment_action(reddit_data: RedditData, target_subreddit: str, image_links: list):
     """
     Executes check and reply for a comment.
-    :param reddit: The Reddit instance.
-    :param comment_stream: The praw comment stream.
+    :param reddit_data: The Reddit instance.
+    :param target_subreddit: Targeted subreddit.
     :param image_links: Image link candidates.
     """
-    for comment in comment_stream:
+    for comment in reddit_data.subreddits[target_subreddit].comments:
         if comment is not None:
             comment_regex_matches = get_regex_bracket_matches(comment.body)
             if comment_requires_action(comment, comment_regex_matches):
-                if (DreadmawObj.get_name() in [item.casefold() for item in comment_regex_matches]
+                if (DreadmawObj.call_name in [item.casefold() for item in comment_regex_matches]
                         and dreadmaw_timer.single_timer()):
-                    dreadmaw_count_increment(reddit, dreadmaw_holder)
-                comment_reply(comment, comment_regex_matches, image_links)
+                    dreadmaw_reply(reddit_data, comment)
+                else:
+                    comment_reply(comment, comment_regex_matches, image_links)
         else:
             break
 
 
 @main_error_handler
-def submission_action(reddit: praw.Reddit, submission_stream, image_links: list):
+def submission_action(reddit_data: RedditData, target_subreddit, image_links: list):
     """
     Executes check and reply for a submission.
-    :param reddit: The Reddit instance.
-    :param submission_stream: The praw submission stream.
+    :param reddit_data: The Reddit instance.
+    :param target_subreddit: Targeted subreddit.
     :param image_links: Image link candidates.
     """
-    for submission in submission_stream:
+    for submission in reddit_data.subreddits[target_subreddit].submissions:
         if submission is not None:
             submission_regex_matches = get_regex_bracket_matches(submission.selftext)
             if submission_requires_action(submission, submission_regex_matches):
-                if (DreadmawObj.get_name() in [item.casefold() for item in submission_regex_matches]
+                if (DreadmawObj.call_name in [item.casefold() for item in submission_regex_matches]
                         and dreadmaw_timer.single_timer()):
-                    dreadmaw_count_increment(reddit, dreadmaw_holder)
-                submission_reply(submission, submission_regex_matches, image_links)
+                    dreadmaw_reply(reddit_data, submission)
+                else:
+                    submission_reply(submission, submission_regex_matches, image_links)
         else:
             break
 
@@ -196,12 +200,9 @@ def submission_reply(submission_data: praw.Reddit.submission, regex_matches: lis
     print("Submission reply successful: https://www.reddit.com" + submission_data.permalink)
 
 
-def dreadmaw_count_increment(reddit: praw.Reddit, dreadmaw: DreadmawObj):
-    """
-    Edits the post on Reddit that contains Dreadmaw's call count and updates the internal counter to match it.
-    :param dreadmaw: A DreadmawObj object.
-    :param reddit: The Reddit instance.
-    """
-    new_count: int = int(reddit.comment("me0tbmp").body) + 1
-    reddit.comment("me0tbmp").edit(str(new_count))
-    dreadmaw.calls_count = new_count
+def dreadmaw_reply(reddit_data: RedditData, item: praw.Reddit.submission | praw.Reddit.comment):
+    reddit_data.dreadmaw.dreadmaw_count_increment()
+    item.reply(reddit_data.dreadmaw.art)
+    dreadmaw_timer.new_expiry_time(random.randint(300, 3600))
+
+
