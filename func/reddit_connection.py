@@ -42,9 +42,13 @@ class RedditData:
                 logger.warning("HTTP request response error, retry in 30 seconds. Error code: " + str(response_exc))
                 time.sleep(30)
                 raise LoginException
-            except praw.exceptions.RedditAPIException as api_e:
-                logger.warning("APIException. Error code: " + str(api_e))
-                time.sleep(30)
+            except praw.exceptions.RedditAPIException as rapi_e:
+                logger.warning("RedditAPIException, retry in 10 seconds. Error code: " + str(rapi_e))
+                time.sleep(10)
+                raise LoginException
+            except praw.exceptions.APIException as api_e:
+                logger.warning("APIException, retry in 10 seconds. Error code: " + str(api_e))
+                time.sleep(10)
                 raise LoginException
         return wrapper
 
