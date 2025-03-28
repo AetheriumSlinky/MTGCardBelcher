@@ -53,5 +53,5 @@ class IgnoreExclusions:
     Miscellaneous exclusions and ignores.
     """
     IGNORE_CALLS_FROM = ['MTGCardBelcher', 'MTGCardFetcher']
-    WEEKLY_UNJERK = re.compile(r'.*unjerk.*thread.*')
-    BOTTOM_5 = re.compile(r'.*bottom.*scoring.*')
+    WEEKLY_UNJERK = re.compile(r'.*unjerk.*thread.*', flags=re.IGNORECASE)
+    BOTTOM_5 = re.compile(r'.*bottom.*scoring.*', flags=re.IGNORECASE)

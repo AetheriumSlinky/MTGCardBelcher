@@ -206,7 +206,7 @@ def comment_requires_action(comment_data: praw.Reddit.comment, regex_matches: li
     # State exclusions
     submission_exclusions = [
         # Weekly unjerk
-        re.search(IgnoreExclusions.WEEKLY_UNJERK, string=comment_data.submission.title, flags=re.IGNORECASE)
+        IgnoreExclusions.WEEKLY_UNJERK.search(string=comment_data.submission.title)
     ]
 
     if comment_data.author.name in IgnoreExclusions.IGNORE_CALLS_FROM:  # Bots
@@ -239,9 +239,9 @@ def submission_requires_action(submission_data: praw.Reddit.submission, regex_ma
     # State exclusions
     submission_exclusions = [
         # Weekly unjerk
-        re.search(IgnoreExclusions.WEEKLY_UNJERK, string=submission_data.title, flags=re.IGNORECASE),
+        IgnoreExclusions.WEEKLY_UNJERK.search(string=submission_data.title),
         # Bottom scoring submissions
-        re.search(IgnoreExclusions.BOTTOM_5, string=submission_data.title, flags=re.IGNORECASE),
+        IgnoreExclusions.BOTTOM_5.search(string=submission_data.title),
     ]
 
     if submission_data.author.name in IgnoreExclusions.IGNORE_CALLS_FROM:  # Bots
