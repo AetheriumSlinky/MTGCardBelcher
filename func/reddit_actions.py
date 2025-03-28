@@ -11,7 +11,7 @@ import prawcore
 from data.exceptions import MainOperationException
 from func.base_logger import logger
 from func.reddit_connection import RedditData
-from data.configs import IMGSubmissionParams, BotInfo, Subreddits
+from data.configs import IMGSubmissionParams, Subreddits, IgnoreExclusions
 from func.text_functions import get_regex_bracket_matches, generate_reply_text, dreadmaw_timer
 from data.dreadmaw import Dreadmaw
 
@@ -114,21 +114,21 @@ def determine_new_flair_id(image_submission: praw.Reddit.submission, source_subr
         if (image_submission.link_flair_template_id == IMGSubmissionParams.CARD_SUBMISSION_FLAIR_ID
             and image_submission.approved):
             flair_id = IMGSubmissionParams.PENDING_FLAIR_ID
-            # logger.info(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
+            logger.info(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
             print(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
 
         if image_submission.link_flair_template_id == IMGSubmissionParams.PENDING_FLAIR_ID:
             if (image_submission.score >= IMGSubmissionParams.SCORE_THRESHOLD
                 and image_submission.upvote_ratio >= IMGSubmissionParams.RATIO_THRESHOLD):
                 flair_id = IMGSubmissionParams.APPROVED_FLAIR_ID
-                # logger.info(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
+                logger.info(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
                 print(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
 
         if (image_submission.link_flair_template_id == IMGSubmissionParams.PENDING_FLAIR_ID
                 and int(time.time()) - image_submission.created_utc
                 > IMGSubmissionParams.MAX_IMAGE_APPROVE_TIMEDELTA):
             flair_id = IMGSubmissionParams.REJECTED_FLAIR_ID
-            # logger.info(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
+            logger.info(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
             print(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
 
     return flair_id
@@ -150,8 +150,8 @@ def update_flair(image_submission: praw.Reddit.submission, new_flair_id: str):
         flair_text = "unknown flair"
 
     image_submission.mod.flair(flair_template_id=new_flair_id)
-    logger.info(f"Flair for {image_submission.id} updated to template ID {new_flair_id}.")
-    print(f"Flair for {image_submission.id} updated to {flair_text}.")
+    logger.info(f"Flair status for {image_submission.id} updated to '{flair_text}'.")
+    print(f"Flair status for {image_submission.id} updated to '{flair_text}'.")
 
 
 @main_error_handler
@@ -206,10 +206,10 @@ def comment_requires_action(comment_data: praw.Reddit.comment, regex_matches: li
     # State exclusions
     submission_exclusions = [
         # Weekly unjerk
-        re.search(r'.*unjerk.*thread.*', string=comment_data.submission.title, flags=re.IGNORECASE)
+        re.search(IgnoreExclusions.WEEKLY_UNJERK, string=comment_data.submission.title, flags=re.IGNORECASE)
     ]
 
-    if comment_data.author.name == (BotInfo.USERNAME or 'MTGCardFetcher'):  # Bots
+    if comment_data.author.name in IgnoreExclusions.IGNORE_CALLS_FROM:  # Bots
         logger.info("Bot will not reply to itself or to the real CardFetcher (comment). " + comment_data.id)
         return False
 
@@ -239,12 +239,12 @@ def submission_requires_action(submission_data: praw.Reddit.submission, regex_ma
     # State exclusions
     submission_exclusions = [
         # Weekly unjerk
-        re.search(r'.*unjerk.*thread.*', string=submission_data.title, flags=re.IGNORECASE),
+        re.search(IgnoreExclusions.WEEKLY_UNJERK, string=submission_data.title, flags=re.IGNORECASE),
         # Bottom scoring submissions
-        re.search(r'.*bottom.*scoring.*', string=submission_data.title, flags=re.IGNORECASE),
+        re.search(IgnoreExclusions.BOTTOM_5, string=submission_data.title, flags=re.IGNORECASE),
     ]
 
-    if submission_data.author.name == (BotInfo.USERNAME or "MTGCardFetcher"):  # Bots
+    if submission_data.author.name in IgnoreExclusions.IGNORE_CALLS_FROM:  # Bots
         logger.info(
             "Bot will not reply to itself or to the real CardFetcher (submission). "
             + submission_data.id)

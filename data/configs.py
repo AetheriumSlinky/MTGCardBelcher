@@ -1,5 +1,7 @@
 """Contains login info and reply target subreddits."""
 
+import re
+
 class BotInfo:
     """
     Information required to access Reddit and Scryfall.
@@ -45,3 +47,11 @@ class IMGSubmissionParams:
     PENDING_FLAIR_ID = '337aaa10-9cf5-11ef-b08d-1e57adeb694e'
     APPROVED_FLAIR_ID = '882ae2ac-2e80-11ef-bf2d-f2bf21373915'
     REJECTED_FLAIR_ID = '50a490ba-9cf5-11ef-834b-f6ac6a413fab'
+
+class IgnoreExclusions:
+    """
+    Miscellaneous exclusions and ignores.
+    """
+    IGNORE_CALLS_FROM = ['MTGCardBelcher', 'MTGCardFetcher']
+    WEEKLY_UNJERK = re.compile(r'.*unjerk.*thread.*')
+    BOTTOM_5 = re.compile(r'.*bottom.*scoring.*')
