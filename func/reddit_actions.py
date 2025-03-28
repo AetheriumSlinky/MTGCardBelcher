@@ -57,13 +57,17 @@ def get_image_links(reddit_data: RedditData, fetchable_subs: list) -> list:
     image_candidates = ['https://i.redd.it/pcmd6d3o1oad1.png']  # Jollyver is always an option - RIP LardFetcher
     for fetchable_sub in fetchable_subs:  # Search all subreddits defined as sources for images
         reddit = reddit_data.reddit
-        for image_submission in reddit.subreddit[fetchable_sub].new(limit=1000):  # Get a looot of images
+        for image_submission in reddit.subreddit(fetchable_sub).new(limit=1000):  # Get a looot of images
             if fetchable_sub not in image_submission.url:
                 if (re.search('(i.redd.it|i.imgur.com)', image_submission.url)
                         and image_submission.link_flair_text == "Approved Submission"):  # Check for correct flair
                     image_candidates.append(image_submission.url)
     logger.info("Found " + str(len(image_candidates)) + " valid image submissions.")
     return image_candidates
+
+
+def image_source_action():
+    pass
 
 
 @main_error_handler
@@ -74,7 +78,7 @@ def comment_action(reddit_data: RedditData, target_subreddit: str, image_links: 
     :param target_subreddit: Targeted subreddit.
     :param image_links: Image link candidates.
     """
-    for comment in reddit_data.subreddits[target_subreddit].comments:
+    for comment in reddit_data.subreddit_streams[target_subreddit].comments:
         if comment is not None:
             comment_regex_matches = get_regex_bracket_matches(comment.body)
             if comment_requires_action(comment, comment_regex_matches):
@@ -95,7 +99,7 @@ def submission_action(reddit_data: RedditData, target_subreddit, image_links: li
     :param target_subreddit: Targeted subreddit.
     :param image_links: Image link candidates.
     """
-    for submission in reddit_data.subreddits[target_subreddit].submissions:
+    for submission in reddit_data.subreddit_streams[target_subreddit].submissions:
         if submission is not None:
             submission_regex_matches = get_regex_bracket_matches(submission.selftext)
             if submission_requires_action(submission, submission_regex_matches):
@@ -204,9 +208,14 @@ def submission_reply(submission_data: praw.Reddit.submission, regex_matches: lis
     print("Submission reply successful: https://www.reddit.com" + submission_data.permalink)
 
 
-def dreadmaw_reply(reddit_data: RedditData, item: praw.Reddit.submission | praw.Reddit.comment):
-    reddit_data.dreadmaw.dreadmaw_count_increment()
-    item.reply(reddit_data.dreadmaw.art)
-    dreadmaw_timer.new_expiry_time(random.randint(300, 3600))
-
-
+def dreadmaw_reply(reddit_data: RedditData, item):
+    """
+    Executes the reply action to an eligible Dreadmaw call on either a submission or a comment.
+    Updates the Dreadmaw counter on Reddit, sets a new random expiry time and replies to item.
+    :param reddit_data: The Reddit instance.
+    :param item: A submission or a comment.
+    """
+    item.reply(reddit_data.dreadmaw.update_dreadmaw())
+    dreadmaw_timer.new_expiry_time(random.randint(300, 7200))
+    logger.info(f"Dreadmaw reply successful: https://www.reddit.com" + item.permalink)
+    print(f"Dreadmaw reply successful: https://www.reddit.com" + item.permalink)

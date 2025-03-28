@@ -17,9 +17,15 @@ class RedditData:
     """
     def __init__(self, login_info, targets: list):
         self.targets = targets
-        self.reddit = self.__reddit_login(login_info)
-        self.subreddits = self.__open_subreddits()
-        self.dreadmaw = self.__open_dreadmaw()
+
+        self.reddit = None
+        self.__reddit_login(login_info)
+
+        self.subreddit_streams = {}
+        self.__open_subreddits()
+
+        self.dreadmaw = None
+        self.__open_dreadmaw()
 
     @staticmethod
     def __login_error_handler(func):
@@ -57,7 +63,6 @@ class RedditData:
         """
         Logs in to Reddit.
         :param login_info: A text file containing the OAuth info.
-        :return: The Reddit instance.
         """
         with open(login_info, "r") as oauth_file:
             info = oauth_file.read().splitlines()
@@ -69,27 +74,25 @@ class RedditData:
             client_id=info[3],
             client_secret=info[4])
 
+        self.reddit = reddit_instance
         logger.info("Reddit login successful.")
-        return reddit_instance
 
     @__login_error_handler
     def __open_subreddits(self):
         """
-        Creates a dictionary with SubredditData objects.
-        :return: A dictionary of SubredditData objects.
+        Creates a dictionary with SubredditData objects with subreddit names as keys.
         """
-        subs = {}
         for subreddit in self.targets:
-            subs[subreddit] = SubredditData(subreddit, self.reddit)
-        return subs
+            self.subreddit_streams[subreddit] = SubredditData(subreddit, self.reddit)
+            logger.info(f"Stream connections for {subreddit} were initiated.")
 
     @__login_error_handler
     def __open_dreadmaw(self):
         """
         Creates a DreadmawObj object.
-        :return: A DreadmawObj object.
         """
-        return DreadmawObj(self.reddit)
+        self.dreadmaw = DreadmawObj(self.reddit)
+        logger.info(f"Dreadmaw Object initiated.")
 
     def __try_login_loop(self, login_info):
         """
@@ -112,6 +115,7 @@ class RedditData:
 
         logger.critical(f"There were {attempts} failed login attempts. Stopped trying to log in. Goodbye.")
         raise FatalLoginError("Too many failed login attemps. Exiting program. Goodbye.")
+
 
 class SubredditData:
     """

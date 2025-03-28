@@ -35,10 +35,8 @@ def main():
                 image_submission_links = r.get_image_links(connection, submissions_subreddits)
 
             for sub in target_subreddits:
-                r.comment_action(connection, connection.subreddits[sub].comments,
-                                 image_submission_links)
-                r.submission_action(connection, connection.subreddits[sub].submissions,
-                                    image_submission_links)
+                r.comment_action(connection, sub, image_submission_links)
+                r.submission_action(connection, sub, image_submission_links)
 
         except MainOperationException:
             connection = RedditData(oauth, target_subreddits)
