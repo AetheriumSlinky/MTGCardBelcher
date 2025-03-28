@@ -2,9 +2,7 @@
 
 
 class RastamonCard:
-    """
-    A class to represent a Rastamonliveup card object.
-    """
+    """Holds a Rastamonliveup card's attributes."""
     def __init__(self, proper_name: str, spellings: list, image: str):
         """
         Constructs the Rastamonliveup card object that contains the names and links of the card.

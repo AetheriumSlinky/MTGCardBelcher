@@ -28,7 +28,7 @@ def main():
     logger.info('Reddit session successfully started.')
     print("...init complete.")
 
-    # Main loop
+    # Loop
     while True:
         try:
             if image_refresh.recurring_timer():  # Has 30 minutes passed?

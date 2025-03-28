@@ -25,6 +25,7 @@ class Subreddits:
     """
     CALL_SUBREDDITS = ["magicthecirclejerking", "MTGCardBelcher_dev"]
     SUBMISSION_SUBREDDITS = ["MTGCardBelcher"]
+    MAX_IMAGE_SUBMISSIONS = 1000  # This cannot be higher than 1000
 
 
 class IMGSubmissionParams:

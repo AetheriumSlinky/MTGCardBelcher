@@ -13,7 +13,7 @@ from data.exceptions import LoginException, FatalLoginError
 
 class RedditData:
     """
-    A combined Reddit and SubredditData objects with active connection to Reddit.
+    A combined Reddit and SubredditData objects with the active connection to Reddit.
     """
     def __init__(self, login_info, targets: list):
         self.targets = targets

@@ -11,7 +11,7 @@ import prawcore
 from data.exceptions import MainOperationException
 from func.base_logger import logger
 from func.reddit_connection import RedditData
-from data.configs import IMGSubmissionParams, BotInfo
+from data.configs import IMGSubmissionParams, BotInfo, Subreddits
 from func.text_functions import get_regex_bracket_matches, generate_reply_text, dreadmaw_timer
 from data.dreadmaw import Dreadmaw
 
@@ -58,14 +58,19 @@ def source_sub_action(reddit_data: RedditData, source_subreddit: str) -> list:
     reddit: praw.Reddit = reddit_data.reddit
     image_candidate_urls = ['https://i.redd.it/pcmd6d3o1oad1.png'] # Jollyver is always an option - RIP LardFetcher
     flair_update_count = 0
-    for image_submission in reddit.subreddit(source_subreddit).new(limit=1000):
 
+    # Iterate over all fetchable submissions
+    for image_submission in reddit.subreddit(source_subreddit).new(limit=Subreddits.MAX_IMAGE_SUBMISSIONS):
+
+        # Figure out if a new flair is needed for an image post
         new_flair_id = determine_new_flair_id(image_submission, source_subreddit)
 
+        # If a new flair was generated update current flair
         if new_flair_id:
             flair_update_count += 1
             update_flair(image_submission, new_flair_id)
 
+        # Check if submission has the correct flair
         if image_submission_is_eligible(image_submission, source_subreddit):
             image_candidate_urls.append(image_submission.url)
 
@@ -81,10 +86,14 @@ def image_submission_is_eligible(image_submission: praw.Reddit.submission, sourc
     :param source_subreddit: Image candidate subreddit's name.
     :return: True if image candidate is eligible, otherwise False.
     """
-    if source_subreddit not in image_submission.url:
-        if (re.search('(i.redd.it|i.imgur.com)', image_submission.url)
-                and image_submission.link_flair_template_id == IMGSubmissionParams.APPROVED_FLAIR_ID):
+    if ((source_subreddit not in image_submission.url)
+            and (re.search('(i.redd.it|i.imgur.com)', image_submission.url))
+            and (image_submission.link_flair_template_id == IMGSubmissionParams.APPROVED_FLAIR_ID)):
+
+            # Fetching from the correct place, post is an image and has the correct flair
             return True
+
+    # At least one of the conditions was off, probably the flair
     return False
 
 

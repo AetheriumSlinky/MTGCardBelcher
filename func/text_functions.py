@@ -118,8 +118,8 @@ def generate_reply_text(regex_matches: list, links: list) -> str:
 
     # Some overrides for Colossal Dreadmaw
     if Dreadmaw.DREADMAW_CALLNAME in [item.casefold() for item in regex_matches]:
-        # Bypass the entire randomly generated procedure
-        # and only print this particular response if Dreadmaw is mentioned even once
+
+        # Bypass everything, print this particular response if Dreadmaw is mentioned even once
         choose_special = -1
         reply = set_dreadmaw_waiting(reply, "Colossal Dreadmaw")
 
@@ -179,7 +179,6 @@ def generate_reply_text(regex_matches: list, links: list) -> str:
     reply.footer = "*********\n\nSubmit your content at: r/MTGCardBelcher"
 
     reply_text = f'''{reply.header}{reply.body}{reply.flavour}{reply.footer}'''
-
     return reply_text
 
 
