@@ -82,7 +82,7 @@ grumpy = ("You! Yes, you! I'm tired of your and your friends' crap. "
 gruul = "Gruul? Gruul!\n\n"
 
 # List of special headers
-special_types = [phyrexian, licid, dreadmaw, yargle, grumpy, gruul,]
+special_types = [phyrexian, licid, yargle, grumpy, gruul, dreadmaw]
 
 # Generic header creature types
 generic_types = [

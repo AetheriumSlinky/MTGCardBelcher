@@ -5,6 +5,7 @@ import re
 
 from func.base_logger import logger
 from func.timer import RefreshTimer
+from data.dreadmaw import DreadmawObj
 from data.rastamon_cards import RastamonCard, rastamon_list
 import data.replies as replies
 import func.scryfall_functions as sf
@@ -49,6 +50,15 @@ def get_regex_bracket_matches(text: str) -> list:
     mobile_double_bracket_matches = re.findall(r'''\[\[([^\[\]]+)]]''', text)
     all_matches = browser_double_bracket_matches + mobile_double_bracket_matches  # Pray for no doubles
     return all_matches
+
+def set_dreadmaw_waiting(reply_text: BotReplyText, cardname: str) -> BotReplyText:
+    """
+    Sets the bot reply text elements for the special Colossal Dreadmaw reply.
+    """
+    reply_text.header = "Colossal Dreadmaw is nowhere to be _seen_.\n\n"
+    reply_text.body_add_text(f'''[{cardname}](https://i.redd.it/bvjzb0rfaike1.png)\n\n''')
+    reply_text.flavour = "_You feel the ground quake. Run!_\n\n"
+    return reply_text
 
 
 def set_revel(reply_text: BotReplyText, cardname: str) -> BotReplyText:
@@ -96,17 +106,25 @@ def set_rastamon(reply_text: BotReplyText, rastamon_card: RastamonCard) -> BotRe
     return reply_text
 
 
-def generate_reply_text(text: str, links: list) -> str:
+def generate_reply_text(regex_matches: list, links: list) -> str:
     """
     Generates the text that the bot will attempt to reply with.
-    :param text: The text body from a comment or a submission.
+    :param regex_matches: The regex matches from a comment or a submission.
     :param links: A list of joke image link candidates.
     :return: Fully formatted reply text.
     """
     reply = BotReplyText()
 
+    # Some overrides for Colossal Dreadmaw
+    if DreadmawObj.call_name in [item.casefold() for item in regex_matches]:
+        # Bypass the entire randomly generated procedure
+        # and only print this particular response if Dreadmaw is mentioned even once
+        choose_special = -1
+        reply = set_dreadmaw_waiting(reply, "Colossal Dreadmaw")
+
     # Determines whether a regular reply is delivered or if one of the special modes is chosen instead
-    choose_special = random.randint(0, 1001)
+    else:
+        choose_special = random.randint(0, 1001)
 
     if choose_special == 0:  # Text-only replies, no links
         reply.body = random.choice(replies.special_replies)
@@ -116,14 +134,11 @@ def generate_reply_text(text: str, links: list) -> str:
         reply.header = random.choice(replies.special_types)
         logger.info("Easter egg header reply delivered.")
 
-    else:  # The normal mode - determine a random creature type
+    elif choose_special > 1:  # The normal mode - determine a random creature type
         reply.header = replies.random_creature_header(replies.generic_types)
 
     # If a reply with a header chosen add links and all
     if choose_special >= 1:
-
-        # Find double bracket matches
-        regex_matches = get_regex_bracket_matches(text)
 
         # For each regex match loop de loop
         for cardname in regex_matches:
@@ -170,3 +185,7 @@ def generate_reply_text(text: str, links: list) -> str:
 # This timer is set for the Negate special flavour so that it's not called too often (once a day)
 # Starts at 0 so that the reply is available immediately after each bot restart
 negate_timer = RefreshTimer(0)
+
+# This time is set for the special Colossal Dreasmaw text so that it's not called too often (variable cooldown)
+# Starts at 0 so that the reply is available immediately after each bot restart.
+dreadmaw_timer = RefreshTimer(0)
