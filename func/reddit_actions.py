@@ -48,31 +48,33 @@ def main_error_handler(func):
 
 
 @main_error_handler
-def source_sub_action(reddit_data: RedditData, source_subreddit: str) -> list:
+def source_sub_action(reddit_data: RedditData, source_subreddits: list) -> list:
     """
     Executes checks and actions in the image submission subreddit. Returns a list of image candidates.
     :param reddit_data: RedditData object.
-    :param source_subreddit: Image submission subreddit.
+    :param source_subreddits: Image submission subreddit.
     :return: A list of image candidates.
     """
     reddit: praw.Reddit = reddit_data.reddit
     image_candidate_urls = ['https://i.redd.it/pcmd6d3o1oad1.png'] # Jollyver is always an option - RIP LardFetcher
     flair_update_count = 0
 
-    # Iterate over all fetchable submissions
-    for image_submission in reddit.subreddit(source_subreddit).new(limit=Subreddits.MAX_IMAGE_SUBMISSIONS):
+    for source in source_subreddits:
 
-        # Figure out if a new flair is needed for an image post
-        new_flair_id = determine_new_flair_id(image_submission, source_subreddit)
+        # Iterate over all fetchable submissions
+        for image_submission in reddit.subreddit(source).new(limit=Subreddits.MAX_IMAGE_SUBMISSIONS):
 
-        # If a new flair was generated update current flair
-        if new_flair_id:
-            flair_update_count += 1
-            update_flair(image_submission, new_flair_id)
+            # Figure out if a new flair is needed for an image post
+            new_flair_id = determine_new_flair_id(image_submission, source)
 
-        # Check if submission has the correct flair
-        if image_submission_is_eligible(image_submission, source_subreddit):
-            image_candidate_urls.append(image_submission.url)
+            # If a new flair was generated update current flair
+            if new_flair_id:
+                flair_update_count += 1
+                update_flair(image_submission, new_flair_id)
+
+            # Check if submission has the correct flair
+            if image_submission_is_eligible(image_submission, source):
+                image_candidate_urls.append(image_submission.url)
 
     logger.info(f"Found and updated {str(flair_update_count)} image submission flairs.")
     logger.info(f"Found {str(len(image_candidate_urls))} valid image submissions.")
@@ -147,8 +149,8 @@ def update_flair(image_submission: praw.Reddit.submission, new_flair_id: str):
     else:
         flair_text = "unknown flair"
 
-    # image_submission.mod.flair(flair_template_id=new_flair_id)
-    # logger.info(f"Flair for {image_submission.id} updated to template ID {new_flair_id}.")
+    image_submission.mod.flair(flair_template_id=new_flair_id)
+    logger.info(f"Flair for {image_submission.id} updated to template ID {new_flair_id}.")
     print(f"Flair for {image_submission.id} updated to {flair_text}.")
 
 
