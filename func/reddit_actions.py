@@ -11,13 +11,14 @@ import prawcore
 from data.exceptions import MainOperationException
 from func.base_logger import logger
 from func.reddit_connection import RedditData
+from data.configs import IMGSubmissionParams, BotInfo
 from func.text_functions import get_regex_bracket_matches, generate_reply_text, dreadmaw_timer
-from data.dreadmaw import DreadmawObj
+from data.dreadmaw import Dreadmaw
 
 
 def main_error_handler(func):
     """
-    Raises errors during normal operation.
+    Raises MainOperationError during abnormal operation.
     """
     def wrapper(*args, **kwargs):
         """Wrapper."""
@@ -47,34 +48,106 @@ def main_error_handler(func):
 
 
 @main_error_handler
-def get_image_links(reddit_data: RedditData, fetchable_subs: list) -> list:
+def source_sub_action(reddit_data: RedditData, source_subreddit: str) -> list:
     """
-    Searches target subreddits for image links.
-    :param reddit_data: The RedditData object.
-    :param fetchable_subs: A list of subreddits where the image submissions are found.
-    :return: A list of image candidate links.
+    Executes checks and actions in the image submission subreddit. Returns a list of image candidates.
+    :param reddit_data: RedditData object.
+    :param source_subreddit: Image submission subreddit.
+    :return: A list of image candidates.
     """
-    image_candidates = ['https://i.redd.it/pcmd6d3o1oad1.png']  # Jollyver is always an option - RIP LardFetcher
-    for fetchable_sub in fetchable_subs:  # Search all subreddits defined as sources for images
-        reddit = reddit_data.reddit
-        for image_submission in reddit.subreddit(fetchable_sub).new(limit=1000):  # Get a looot of images
-            if fetchable_sub not in image_submission.url:
-                if (re.search('(i.redd.it|i.imgur.com)', image_submission.url)
-                        and image_submission.link_flair_text == "Approved Submission"):  # Check for correct flair
-                    image_candidates.append(image_submission.url)
-    logger.info("Found " + str(len(image_candidates)) + " valid image submissions.")
-    return image_candidates
+    reddit: praw.Reddit = reddit_data.reddit
+    image_candidate_urls = ['https://i.redd.it/pcmd6d3o1oad1.png'] # Jollyver is always an option - RIP LardFetcher
+    flair_update_count = 0
+    for image_submission in reddit.subreddit(source_subreddit).new(limit=1000):
+
+        new_flair_id = determine_new_flair_id(image_submission, source_subreddit)
+
+        if new_flair_id:
+            flair_update_count += 1
+            update_flair(image_submission, new_flair_id)
+
+        if image_submission_is_eligible(image_submission, source_subreddit):
+            image_candidate_urls.append(image_submission.url)
+
+    logger.info(f"Found and updated {str(flair_update_count)} image submission flairs.")
+    logger.info(f"Found {str(len(image_candidate_urls))} valid image submissions.")
+    return image_candidate_urls
 
 
-def image_source_action():
-    pass
+def image_submission_is_eligible(image_submission: praw.Reddit.submission, source_subreddit: str) -> bool:
+    """
+    Checks for image submission eligibility.
+    :param image_submission: An image submission candidate.
+    :param source_subreddit: Image candidate subreddit's name.
+    :return: True if image candidate is eligible, otherwise False.
+    """
+    if source_subreddit not in image_submission.url:
+        if (re.search('(i.redd.it|i.imgur.com)', image_submission.url)
+                and image_submission.link_flair_template_id == IMGSubmissionParams.APPROVED_FLAIR_ID):
+            return True
+    return False
+
+
+def determine_new_flair_id(image_submission: praw.Reddit.submission, source_subreddit: str) -> str:
+    """
+    Determines the new flair ID for an image submission if its status has changed since the last check.
+    :param image_submission: Image submission.
+    :param source_subreddit: Image source subreddit name.
+    :return: If a change is needed a new flair ID string, otherwise an empty string.
+    """
+    flair_id = ''
+
+    if (source_subreddit not in image_submission.url
+        and re.search('(i.redd.it|i.imgur.com)', image_submission.url)):
+
+        if (image_submission.link_flair_template_id == IMGSubmissionParams.CARD_SUBMISSION_FLAIR_ID
+            and image_submission.approved):
+            flair_id = IMGSubmissionParams.PENDING_FLAIR_ID
+            # logger.info(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
+            print(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
+
+        if image_submission.link_flair_template_id == IMGSubmissionParams.PENDING_FLAIR_ID:
+            if (image_submission.score >= IMGSubmissionParams.SCORE_THRESHOLD
+                and image_submission.upvote_ratio >= IMGSubmissionParams.RATIO_THRESHOLD):
+                flair_id = IMGSubmissionParams.APPROVED_FLAIR_ID
+                # logger.info(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
+                print(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
+
+        if (image_submission.link_flair_template_id == IMGSubmissionParams.PENDING_FLAIR_ID
+                and int(time.time()) - image_submission.created_utc
+                > IMGSubmissionParams.MAX_IMAGE_APPROVE_TIMEDELTA):
+            flair_id = IMGSubmissionParams.REJECTED_FLAIR_ID
+            # logger.info(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
+            print(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
+
+    return flair_id
+
+
+def update_flair(image_submission: praw.Reddit.submission, new_flair_id: str):
+    """
+    Updates the image submission's flair on Reddit.
+    :param image_submission: Image submission.
+    :param new_flair_id:
+    """
+    if new_flair_id == IMGSubmissionParams.PENDING_FLAIR_ID:
+        flair_text = "pending"
+    elif new_flair_id == IMGSubmissionParams.APPROVED_FLAIR_ID:
+        flair_text = "approved"
+    elif new_flair_id == IMGSubmissionParams.REJECTED_FLAIR_ID:
+        flair_text = "rejected"
+    else:
+        flair_text = "unknown flair"
+
+    # image_submission.mod.flair(flair_template_id=new_flair_id)
+    # logger.info(f"Flair for {image_submission.id} updated to template ID {new_flair_id}.")
+    print(f"Flair for {image_submission.id} updated to {flair_text}.")
 
 
 @main_error_handler
 def comment_action(reddit_data: RedditData, target_subreddit: str, image_links: list):
     """
     Executes check and reply for a comment.
-    :param reddit_data: The Reddit instance.
+    :param reddit_data: RedditData object.
     :param target_subreddit: Targeted subreddit.
     :param image_links: Image link candidates.
     """
@@ -82,7 +155,7 @@ def comment_action(reddit_data: RedditData, target_subreddit: str, image_links: 
         if comment is not None:
             comment_regex_matches = get_regex_bracket_matches(comment.body)
             if comment_requires_action(comment, comment_regex_matches):
-                if (DreadmawObj.call_name in [item.casefold() for item in comment_regex_matches]
+                if (Dreadmaw.DREADMAW_CALLNAME in [item.casefold() for item in comment_regex_matches]
                         and dreadmaw_timer.single_timer()):
                     dreadmaw_reply(reddit_data, comment)
                 else:
@@ -95,7 +168,7 @@ def comment_action(reddit_data: RedditData, target_subreddit: str, image_links: 
 def submission_action(reddit_data: RedditData, target_subreddit, image_links: list):
     """
     Executes check and reply for a submission.
-    :param reddit_data: The Reddit instance.
+    :param reddit_data: RedditData object.
     :param target_subreddit: Targeted subreddit.
     :param image_links: Image link candidates.
     """
@@ -103,7 +176,7 @@ def submission_action(reddit_data: RedditData, target_subreddit, image_links: li
         if submission is not None:
             submission_regex_matches = get_regex_bracket_matches(submission.selftext)
             if submission_requires_action(submission, submission_regex_matches):
-                if (DreadmawObj.call_name in [item.casefold() for item in submission_regex_matches]
+                if (Dreadmaw.DREADMAW_CALLNAME in [item.casefold() for item in submission_regex_matches]
                         and dreadmaw_timer.single_timer()):
                     dreadmaw_reply(reddit_data, submission)
                 else:
@@ -125,7 +198,7 @@ def comment_requires_action(comment_data: praw.Reddit.comment, regex_matches: li
         re.search(r'.*unjerk.*thread.*', string=comment_data.submission.title, flags=re.IGNORECASE)
     ]
 
-    if comment_data.author.name == ('MTGCardBelcher' or 'MTGCardFetcher'):  # Bots
+    if comment_data.author.name == (BotInfo.USERNAME or 'MTGCardFetcher'):  # Bots
         logger.info("Bot will not reply to itself or to the real CardFetcher (comment). " + comment_data.id)
         return False
 
@@ -139,7 +212,7 @@ def comment_requires_action(comment_data: praw.Reddit.comment, regex_matches: li
 
     else:  # Eligible for reply
         logger.info(
-            "Should reply to eligible comment (" + str(regex_matches) + "): https://www.reddit.com"
+            "Should reply to eligible comment (" + ', '.join(regex_matches) + "): https://www.reddit.com"
             + comment_data.permalink
         )
         return True
@@ -160,7 +233,7 @@ def submission_requires_action(submission_data: praw.Reddit.submission, regex_ma
         re.search(r'.*bottom.*scoring.*', string=submission_data.title, flags=re.IGNORECASE),
     ]
 
-    if submission_data.author.name == ("MTGCardBelcher" or "MTGCardFetcher"):  # Bots
+    if submission_data.author.name == (BotInfo.USERNAME or "MTGCardFetcher"):  # Bots
         logger.info(
             "Bot will not reply to itself or to the real CardFetcher (submission). "
             + submission_data.id)
@@ -176,7 +249,7 @@ def submission_requires_action(submission_data: praw.Reddit.submission, regex_ma
 
     else:  # Eligible for reply
         logger.info(
-            "Should reply to eligible post (" + str(regex_matches) + "): https://www.reddit.com"
+            "Should reply to eligible post (" + ', '.join(regex_matches) + "): https://www.reddit.com"
             + submission_data.permalink
         )
         return True
@@ -212,10 +285,10 @@ def dreadmaw_reply(reddit_data: RedditData, item):
     """
     Executes the reply action to an eligible Dreadmaw call on either a submission or a comment.
     Updates the Dreadmaw counter on Reddit, sets a new random expiry time and replies to item.
-    :param reddit_data: The Reddit instance.
+    :param reddit_data: RedditData object.
     :param item: A submission or a comment.
     """
-    item.reply(reddit_data.dreadmaw.update_dreadmaw())
+    item.reply(reddit_data.dreadmaw.dreadmaw_ascii_art())
     dreadmaw_timer.new_expiry_time(random.randint(300, 7200))
-    logger.info(f"Dreadmaw reply successful: https://www.reddit.com" + item.permalink)
-    print(f"Dreadmaw reply successful: https://www.reddit.com" + item.permalink)
+    logger.info("Dreadmaw reply successful: https://www.reddit.com" + item.permalink)
+    print("Dreadmaw reply successful: https://www.reddit.com" + item.permalink)

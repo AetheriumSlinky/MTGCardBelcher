@@ -6,7 +6,7 @@ import praw
 import praw.exceptions
 import prawcore
 
-from data.dreadmaw import DreadmawObj
+from data.dreadmaw import Dreadmaw
 from func.base_logger import logger
 from data.exceptions import LoginException, FatalLoginError
 
@@ -30,7 +30,7 @@ class RedditData:
     @staticmethod
     def __login_error_handler(func):
         """
-        Handles the errors during login. Does not attempt login.
+        Handles the errors during login. Does not re-attempt login.
         """
         def wrapper(*args, **kwargs):
             """Wrapper."""
@@ -91,7 +91,7 @@ class RedditData:
         """
         Creates a DreadmawObj object.
         """
-        self.dreadmaw = DreadmawObj(self.reddit)
+        self.dreadmaw = Dreadmaw(self.reddit)
         logger.info(f"Dreadmaw Object initiated.")
 
     def __try_login_loop(self, login_info):

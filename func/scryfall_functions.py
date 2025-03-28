@@ -3,7 +3,7 @@
 import requests
 
 from func.base_logger import logger
-from data.configs import sf_headers
+from data.configs import BotInfo
 
 
 def get_scryfall_image(cardname: str) -> str:
@@ -14,7 +14,7 @@ def get_scryfall_image(cardname: str) -> str:
     """
     try:
         cardname_match = requests.get(url=f'https://api.scryfall.com/cards/named?exact={cardname}',
-                                      headers=sf_headers)
+                                      headers=BotInfo.SCRYFALL_USER_AGENT_HEADER)
         if cardname_match:
             if cardname_match.json().get('content_warning'):  # Don't append the forbidden cards
                 image_url = ""
@@ -38,7 +38,7 @@ def get_scryfall_flavour() -> str:
     """
     try:
         random_flavour_card = requests.get(url='https://api.scryfall.com/cards/random?q=has%3Aflavor',
-                                           headers=sf_headers)
+                                           headers=BotInfo.SCRYFALL_USER_AGENT_HEADER)
         random_flavour = random_flavour_card.json()['flavor_text']
     # Lazy except because Scryfall isn't that important, just skip it if it doesn't work
     except Exception as scryfall_e:

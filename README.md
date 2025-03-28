@@ -1,27 +1,28 @@
 # What is this?
 
 A joke bot for Reddit. Call it with [[double brackets\]\] on Reddit\
--- and it will fetch you a random joke card image.
+-- it will fetch you a random joke card image.
 
 See [/r/MTGCardBelcher](https://www.reddit.com/r/MTGCardBelcher/) for image sources\
 and the target audience [/r/magicthecirclejerking](https://www.reddit.com/r/magicthecirclejerking/).
 
-Rest in Peace, [original /u/MTGLardFetcher](https://github.com/MTGLardFetcher/MTGLardFetcher). You died for Reddit's sins.
+Rest in Peace, original [/u/MTGLardFetcher](https://github.com/MTGLardFetcher/MTGLardFetcher). You died for Reddit's sins.
 
 # Features
 
-- Regex matches double bracketed strings in posts and comments on a chosen subreddit.
-- Replies with a random image post from another chosen subreddit.
+- Regex matches double bracketed strings in posts and comments on chosen subreddits.
+- Replies with a random image post from other chosen subreddits.
 - Adds a Scryfall card image link if linked card name exact matches a real card name.
 - Adds a random Scryfall flavour text if there is only one card to link.
 - Links to u/Rastamonliveup's r/custommagic cards when called by exact name instead of a random card.
-- Ignores certain posts/comments in the chosen subbreddit (and itself).
+- Replies with an ASCII art Colossal Dreadmaw if Colossal Dreadmaw is called.
+- Ignores certain posts/comments in the chosen subbreddits (also ignores itself).
 - Tries to restore connection to Reddit if Reddit is experiencing internal problems.
 - Logs info and errors.
 
 # Requirements
 
-Written in Python 3.12 and uses the 7.8.1 version of the [PRAW module](https://praw.readthedocs.io/en/stable/).
+Written in Python 3.13 and uses the 7.8.1 version of the [PRAW module](https://praw.readthedocs.io/en/stable/).
 
 See requirements.txt for further information.
 

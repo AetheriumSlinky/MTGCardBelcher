@@ -3,18 +3,18 @@
 import praw
 
 
-class DreadmawObj:
+class Dreadmaw:
     """
     Colossal Dreadmaw ASCII art object with the number of calls made to it.
     """
-    call_name = "colossal dreadmaw"
+    DREADMAW_CALLNAME = "colossal dreadmaw"
 
     def __init__(self, reddit: praw.Reddit):
         self.reddit = reddit
 
-    def update_dreadmaw(self) -> str:
+    def dreadmaw_ascii_art(self) -> str:
         """
-        Fetches call count, updates it and returns ASCII art with collector number.
+        Fetches call count, updates it and returns ASCII art with a new collector number.
         :return: ASCII art.
         """
         count = self.__dreadmaw_count()
