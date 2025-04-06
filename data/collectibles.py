@@ -13,7 +13,7 @@ class CollectibleCards:
     def __init__(self, reddit: praw.Reddit):
         self.reddit = reddit
 
-    def __previous_count(self, count_comment_id: str) -> int:
+    def _previous_count(self, count_comment_id: str) -> int:
         """
         Fetches the current Dreadmaw call count from Reddit.
         :return: Number of times Dreadmaw has been called.
@@ -21,7 +21,7 @@ class CollectibleCards:
         number = int(self.reddit.comment(count_comment_id).body)
         return number
 
-    def __increment_count(self, old_count: int, count_comment_id: str):
+    def _increment_count(self, old_count: int, count_comment_id: str):
         """
         Edits the post on Reddit that contains Dreadmaw's call count and updates the count.
         """
@@ -29,7 +29,7 @@ class CollectibleCards:
         self.reddit.comment(count_comment_id).edit(str(new_count))
 
     @staticmethod
-    def __count_to_str(count) -> str:
+    def _count_to_str(count) -> str:
         """
         Formats the number of calls into a string with a suitable number of characters.
         Raises ValueError if the number exceeds 9999.
@@ -63,9 +63,9 @@ class StormCrow(CollectibleCards):
         Fetches call count, updates it and returns ASCII art with a new collector number.
         :return: ASCII art.
         """
-        prev_count = self.__previous_count(self.COUNT_COMMENT)
-        self.__increment_count(prev_count, self.COUNT_COMMENT)
-        count_str = self.__count_to_str(prev_count)
+        prev_count = self._previous_count(self.COUNT_COMMENT)
+        self._increment_count(prev_count, self.COUNT_COMMENT)
+        count_str = self._count_to_str(prev_count)
         art = self.__ascii_template(count_str)
         return art
 
@@ -97,7 +97,7 @@ class StormCrow(CollectibleCards):
     | Descending,                  |
     | Winter unending.             |
     |                      / 1 /  \\|
-    |                             \\  / 2 /|
+    |                      \\  / 2 /|
     | ==>John Matson      #{count_str}    |
     \\______________________________/\n\n""")
         return art
@@ -118,9 +118,9 @@ class ColossalDreadmaw(CollectibleCards):
         Fetches call count, updates it and returns ASCII art with a new collector number.
         :return: ASCII art.
         """
-        prev_count = self.__previous_count(self.COUNT_COMMENT)
-        self.__increment_count(prev_count, self.COUNT_COMMENT)
-        count_str = self.__count_to_str(prev_count)
+        prev_count = self._previous_count(self.COUNT_COMMENT)
+        self._increment_count(prev_count, self.COUNT_COMMENT)
+        count_str = self._count_to_str(prev_count)
         art = self.__ascii_template(count_str)
         return art
 

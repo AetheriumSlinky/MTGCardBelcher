@@ -315,14 +315,14 @@ def special_reply(reddit_data: RedditData, item, callname: str):
     :param callname: Name of the card that was called.
     """
     if callname == ColossalDreadmaw.NAME:
-        dreadmaw_art = reddit_data.collectibles[ColossalDreadmaw.NAME].dreadmaw_ascii_art(reddit_data.reddit)
+        dreadmaw_art = reddit_data.collectibles[ColossalDreadmaw.NAME].dreadmaw_ascii_art()
         item.reply(dreadmaw_art)
         dreadmaw_timer.new_expiry_time(random.randint(ColossalDreadmaw.TIMER_MIN, ColossalDreadmaw.TIMER_MAX))
         logger.info("Colossal Dreadmaw collectible NFT reply successful: https://www.reddit.com" + item.permalink)
         print("Colossal Dreadmaw collectible NFT reply successful: https://www.reddit.com" + item.permalink)
 
     elif callname == StormCrow.NAME:
-        stormcrow_art = reddit_data.collectibles[StormCrow.NAME].stormcrow_ascii_art(reddit_data.reddit)
+        stormcrow_art = reddit_data.collectibles[StormCrow.NAME].stormcrow_ascii_art()
         item.reply(stormcrow_art)
         stormcrow_timer.new_expiry_time(random.randint(StormCrow.TIMER_MIN, StormCrow.TIMER_MAX))
         logger.info("Storm Crow collectible NFT reply successful: https://www.reddit.com" + item.permalink)
