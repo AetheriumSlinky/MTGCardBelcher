@@ -4,8 +4,8 @@ import random
 import re
 
 from func.base_logger import logger
-from func.timer import RefreshTimer
-from data.dreadmaw import Dreadmaw
+from data.configs import negate_timer
+from data.collectibles import ColossalDreadmaw, StormCrow
 from data.rastamon_cards import Rastamon, RastamonCard
 import data.replies as replies
 import func.scryfall_functions as sf
@@ -59,6 +59,16 @@ def set_dreadmaw_waiting(reply_text: BotReplyText, cardname: str) -> BotReplyTex
     reply_text.header = replies.ReplyHeaders.DREADMAW_WAIT
     reply_text.body_add_text(f'''[{cardname}](https://i.redd.it/bvjzb0rfaike1.png)\n\n''')
     reply_text.flavour = replies.ReplyFlavours.DREADMAW_WAIT
+    return reply_text
+
+
+def set_stormcrow_waiting(reply_text: BotReplyText, cardname: str) -> BotReplyText:
+    """
+    Sets the bot reply text elements for the special Storm Crow reply.
+    """
+    reply_text.header = replies.ReplyHeaders.STORMCROW_WAIT
+    reply_text.body_add_text(f'''[{cardname}](https://i.redd.it/ykxjrafd13te1.png)\n\n''')
+    reply_text.flavour = replies.ReplyFlavours.STORMCROW_WAIT
     return reply_text
 
 
@@ -117,11 +127,18 @@ def generate_reply_text(regex_matches: list, links: list) -> str:
     reply = BotReplyText()
 
     # Some overrides for Colossal Dreadmaw
-    if Dreadmaw.DREADMAW_CALLNAME in [item.casefold() for item in regex_matches]:
+    if ColossalDreadmaw.NAME.casefold() in [item.casefold() for item in regex_matches]:
 
         # Bypass everything, print this particular response if Dreadmaw is mentioned even once
         choose_special = -1
-        reply = set_dreadmaw_waiting(reply, "Colossal Dreadmaw")
+        reply = set_dreadmaw_waiting(reply, ColossalDreadmaw.NAME)
+
+    # Some overrides for Storm Crow
+    elif StormCrow.NAME.casefold() in [item.casefold() for item in regex_matches]:
+
+        # Bypass everything, print this particular response if Storm Crow is mentioned even once
+        choose_special = -1
+        reply = set_stormcrow_waiting(reply, StormCrow.NAME)
 
     # Determines whether a regular reply is delivered or if one of the special modes is chosen instead
     else:
@@ -180,12 +197,3 @@ def generate_reply_text(regex_matches: list, links: list) -> str:
 
     reply_text = f'''{reply.header}{reply.body}{reply.flavour}{reply.footer}'''
     return reply_text
-
-
-# This timer is set for the Negate special flavour so that it's not called too often (once a day)
-# Starts at 0 so that the reply is available immediately after each bot restart
-negate_timer = RefreshTimer(0)
-
-# This time is set for the special Colossal Dreasmaw text so that it's not called too often (variable cooldown)
-# Starts at 0 so that the reply is available immediately after each bot restart.
-dreadmaw_timer = RefreshTimer(0)

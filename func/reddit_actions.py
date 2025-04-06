@@ -8,12 +8,12 @@ import praw
 import praw.exceptions
 import prawcore
 
-from data.exceptions import MainOperationException
 from func.base_logger import logger
 from func.reddit_connection import RedditData
-from data.configs import IMGSubmissionParams, Subreddits, IgnoreExclusions
-from func.text_functions import get_regex_bracket_matches, generate_reply_text, dreadmaw_timer
-from data.dreadmaw import Dreadmaw
+from data.exceptions import MainOperationException
+from data.configs import IMGSubmissionParams, Subreddits, MiscSettings, dreadmaw_timer, stormcrow_timer
+from data.collectibles import ColossalDreadmaw, StormCrow
+from func.text_functions import get_regex_bracket_matches, generate_reply_text
 
 
 def main_error_handler(func):
@@ -147,7 +147,7 @@ def update_flair(image_submission: praw.Reddit.submission, new_flair_id: str):
     elif new_flair_id == IMGSubmissionParams.REJECTED_FLAIR_ID:
         flair_text = "rejected"
     else:
-        flair_text = "unknown flair"
+        flair_text = "unknown"
 
     image_submission.mod.flair(flair_template_id=new_flair_id)
     logger.info(f"Flair status for {image_submission.id} updated to '{flair_text}'.")
@@ -165,10 +165,19 @@ def comment_action(reddit_data: RedditData, target_subreddit: str, image_links: 
     for comment in reddit_data.subreddit_streams[target_subreddit].comments:
         if comment is not None:
             comment_regex_matches = get_regex_bracket_matches(comment.body)
+            low_matches = [item.casefold() for item in comment_regex_matches]
             if comment_requires_action(comment, comment_regex_matches):
-                if (Dreadmaw.DREADMAW_CALLNAME in [item.casefold() for item in comment_regex_matches]
+
+                if (MiscSettings.NTF_REPLIES_ON
+                        and ColossalDreadmaw.NAME.casefold() in low_matches
                         and dreadmaw_timer.single_timer()):
-                    dreadmaw_reply(reddit_data, comment)
+                    special_reply(reddit_data, comment, ColossalDreadmaw.NAME)
+
+                elif (MiscSettings.NTF_REPLIES_ON
+                      and StormCrow.NAME.casefold() in low_matches
+                      and stormcrow_timer.single_timer()):
+                    special_reply(reddit_data, comment, StormCrow.NAME)
+
                 else:
                     comment_reply(comment, comment_regex_matches, image_links)
         else:
@@ -186,10 +195,19 @@ def submission_action(reddit_data: RedditData, target_subreddit, image_links: li
     for submission in reddit_data.subreddit_streams[target_subreddit].submissions:
         if submission is not None:
             submission_regex_matches = get_regex_bracket_matches(submission.selftext)
+            low_matches = [item.casefold() for item in submission_regex_matches]
             if submission_requires_action(submission, submission_regex_matches):
-                if (Dreadmaw.DREADMAW_CALLNAME in [item.casefold() for item in submission_regex_matches]
+
+                if (MiscSettings.NTF_REPLIES_ON
+                        and ColossalDreadmaw.NAME.casefold() in low_matches
                         and dreadmaw_timer.single_timer()):
-                    dreadmaw_reply(reddit_data, submission)
+                    special_reply(reddit_data, submission, ColossalDreadmaw.NAME)
+
+                elif (MiscSettings.NTF_REPLIES_ON
+                      and StormCrow.NAME.casefold() in low_matches
+                      and stormcrow_timer.single_timer()):
+                    special_reply(reddit_data, submission, StormCrow.NAME)
+
                 else:
                     submission_reply(submission, submission_regex_matches, image_links)
         else:
@@ -205,11 +223,10 @@ def comment_requires_action(comment_data: praw.Reddit.comment, regex_matches: li
     """
     # State exclusions
     submission_exclusions = [
-        # Weekly unjerk
-        IgnoreExclusions.WEEKLY_UNJERK.search(string=comment_data.submission.title)
+        MiscSettings.WEEKLY_UNJERK.search(string=comment_data.submission.title)
     ]
 
-    if comment_data.author.name in IgnoreExclusions.IGNORE_CALLS_FROM:  # Bots
+    if comment_data.author.name in MiscSettings.IGNORE_CALLS_FROM:  # Bots
         logger.info("Bot will not reply to itself or to the real CardFetcher (comment). " + comment_data.id)
         return False
 
@@ -238,13 +255,11 @@ def submission_requires_action(submission_data: praw.Reddit.submission, regex_ma
     """
     # State exclusions
     submission_exclusions = [
-        # Weekly unjerk
-        IgnoreExclusions.WEEKLY_UNJERK.search(string=submission_data.title),
-        # Bottom scoring submissions
-        IgnoreExclusions.BOTTOM_5.search(string=submission_data.title),
+        MiscSettings.WEEKLY_UNJERK.search(string=submission_data.title),
+        MiscSettings.BOTTOM_5.search(string=submission_data.title),
     ]
 
-    if submission_data.author.name in IgnoreExclusions.IGNORE_CALLS_FROM:  # Bots
+    if submission_data.author.name in MiscSettings.IGNORE_CALLS_FROM:  # Bots
         logger.info(
             "Bot will not reply to itself or to the real CardFetcher (submission). "
             + submission_data.id)
@@ -292,14 +307,23 @@ def submission_reply(submission_data: praw.Reddit.submission, regex_matches: lis
     print("Submission reply successful: https://www.reddit.com" + submission_data.permalink)
 
 
-def dreadmaw_reply(reddit_data: RedditData, item):
+def special_reply(reddit_data: RedditData, item, callname: str):
     """
-    Executes the reply action to an eligible Dreadmaw call on either a submission or a comment.
-    Updates the Dreadmaw counter on Reddit, sets a new random expiry time and replies to item.
-    :param reddit_data: RedditData object.
-    :param item: A submission or a comment.
+    Executes the special collectible reply action to an eligible comment or submission.
+    :param reddit_data: A RedditData object.
+    :param item: A comment or a submission.
+    :param callname: Name of the card that was called.
     """
-    item.reply(reddit_data.dreadmaw.dreadmaw_ascii_art())
-    dreadmaw_timer.new_expiry_time(random.randint(300, 7200))
-    logger.info("Dreadmaw reply successful: https://www.reddit.com" + item.permalink)
-    print("Dreadmaw reply successful: https://www.reddit.com" + item.permalink)
+    if callname == ColossalDreadmaw.NAME:
+        dreadmaw_art = reddit_data.collectibles[ColossalDreadmaw.NAME].dreadmaw_ascii_art(reddit_data.reddit)
+        item.reply(dreadmaw_art)
+        dreadmaw_timer.new_expiry_time(random.randint(ColossalDreadmaw.TIMER_MIN, ColossalDreadmaw.TIMER_MAX))
+        logger.info("Colossal Dreadmaw collectible NFT reply successful: https://www.reddit.com" + item.permalink)
+        print("Colossal Dreadmaw collectible NFT reply successful: https://www.reddit.com" + item.permalink)
+
+    elif callname == StormCrow.NAME:
+        stormcrow_art = reddit_data.collectibles[StormCrow.NAME].stormcrow_ascii_art(reddit_data.reddit)
+        item.reply(stormcrow_art)
+        stormcrow_timer.new_expiry_time(random.randint(StormCrow.TIMER_MIN, StormCrow.TIMER_MAX))
+        logger.info("Storm Crow collectible NFT reply successful: https://www.reddit.com" + item.permalink)
+        print("Storm Crow collectible NFT reply successful: https://www.reddit.com" + item.permalink)

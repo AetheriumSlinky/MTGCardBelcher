@@ -6,26 +6,21 @@ import praw
 import praw.exceptions
 import prawcore
 
-from data.dreadmaw import Dreadmaw
 from func.base_logger import logger
 from data.exceptions import LoginException, FatalLoginError
+from data.collectibles import ColossalDreadmaw, StormCrow
 
 
 class RedditData:
     """
-    A combined Reddit and SubredditData objects with the active connection to Reddit.
+    A combined Reddit, SubredditData, and collectible card objects dict -object with the active connection to Reddit.
     """
     def __init__(self, login_info, targets: list):
         self.targets = targets
-
         self.reddit = None
-        self.__reddit_login(login_info)
-
         self.subreddit_streams = {}
-        self.__open_subreddits()
-
-        self.dreadmaw = None
-        self.__open_dreadmaw()
+        self.collectibles = {}
+        self.__try_login_loop(login_info)
 
     @staticmethod
     def __login_error_handler(func):
@@ -78,7 +73,7 @@ class RedditData:
         logger.info("Reddit login successful.")
 
     @__login_error_handler
-    def __open_subreddits(self):
+    def __open_streams(self):
         """
         Creates a dictionary with SubredditData objects with subreddit names as keys.
         """
@@ -87,12 +82,12 @@ class RedditData:
             logger.info(f"Stream connections for {subreddit} were initiated.")
 
     @__login_error_handler
-    def __open_dreadmaw(self):
+    def __collectibles(self):
         """
-        Creates a DreadmawObj object.
+        Creates instances of the collectible card objects.
         """
-        self.dreadmaw = Dreadmaw(self.reddit)
-        logger.info(f"Dreadmaw Object initiated.")
+        self.collectibles[ColossalDreadmaw.NAME] = ColossalDreadmaw(self.reddit)
+        self.collectibles[StormCrow.NAME] = StormCrow(self.reddit)
 
     def __try_login_loop(self, login_info):
         """
@@ -101,11 +96,13 @@ class RedditData:
         :return: A RedditData object containing the Reddit instance and subreddit streams.
         """
         attempts = 0
+
         while attempts < 20:
             try:
                 self.__reddit_login(login_info)
-                self.__open_subreddits()
-                self.__open_dreadmaw()
+                self.__open_streams()
+                self.__collectibles()
+                break
 
             except LoginException:
                 time.sleep(2 ** attempts)
@@ -113,8 +110,9 @@ class RedditData:
                                f"Retrying after {2 ** attempts} seconds.")
                 attempts += 1
 
-        logger.critical(f"There were {attempts} failed login attempts. Stopped trying to log in. Goodbye.")
-        raise FatalLoginError("Too many failed login attemps. Exiting program. Goodbye.")
+        if attempts >= 20:
+            logger.critical(f"There were {attempts} failed login attempts. Stopped trying to log in. Goodbye.")
+            raise FatalLoginError("Too many failed login attemps. Exiting program. Goodbye.")
 
 
 class SubredditData:

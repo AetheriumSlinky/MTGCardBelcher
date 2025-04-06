@@ -1,6 +1,7 @@
 """Contains login info and reply target subreddits."""
 
 import re
+from func.timer import RefreshTimer
 
 class BotInfo:
     """
@@ -48,10 +49,25 @@ class IMGSubmissionParams:
     APPROVED_FLAIR_ID = '882ae2ac-2e80-11ef-bf2d-f2bf21373915'
     REJECTED_FLAIR_ID = '50a490ba-9cf5-11ef-834b-f6ac6a413fab'
 
-class IgnoreExclusions:
+
+class MiscSettings:
     """
-    Miscellaneous exclusions and ignores.
+    Miscellaneous bot settings.
     """
     IGNORE_CALLS_FROM = ['MTGCardBelcher', 'MTGCardFetcher']
     WEEKLY_UNJERK = re.compile(r'.*unjerk.*thread.*', flags=re.IGNORECASE)
     BOTTOM_5 = re.compile(r'.*bottom.*scoring.*', flags=re.IGNORECASE)
+    NTF_REPLIES_ON = True
+
+
+# This timer is set for the Negate special flavour so that it's not called too often (once a day)
+# Starts at 0 so that the reply is available immediately after each bot restart
+negate_timer = RefreshTimer(0)
+
+# This time is set for the special Colossal Dreasmaw text so that it's not called too often (variable cooldown)
+# Starts at 0 so that the reply is available immediately after each bot restart
+dreadmaw_timer = RefreshTimer(0)
+
+# This timer is set for the special Storm Crow text so that it's not called too often (variable cooldown)
+# Starts at 0 so that the reply is available immediately after each bot restart
+stormcrow_timer = RefreshTimer(0)
