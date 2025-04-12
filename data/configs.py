@@ -48,6 +48,7 @@ class IMGSubmissionParams:
     PENDING_FLAIR_ID = '337aaa10-9cf5-11ef-b08d-1e57adeb694e'
     APPROVED_FLAIR_ID = '882ae2ac-2e80-11ef-bf2d-f2bf21373915'
     REJECTED_FLAIR_ID = '50a490ba-9cf5-11ef-834b-f6ac6a413fab'
+    META_FEEDBACK_OTHER_FLAIR_ID = '997724da-2e80-11ef-996d-26eb2b2aa996'
 
 
 class MiscSettings:

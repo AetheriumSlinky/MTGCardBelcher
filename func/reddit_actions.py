@@ -111,25 +111,31 @@ def determine_new_flair_id(image_submission: praw.Reddit.submission, source_subr
     if (source_subreddit not in image_submission.url
         and re.search('(i.redd.it|i.imgur.com)', image_submission.url)):
 
-        if (image_submission.link_flair_template_id == IMGSubmissionParams.CARD_SUBMISSION_FLAIR_ID
-            and image_submission.approved):
-            flair_id = IMGSubmissionParams.PENDING_FLAIR_ID
-            logger.info(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
-            print(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
-
-        if image_submission.link_flair_template_id == IMGSubmissionParams.PENDING_FLAIR_ID:
-            if (image_submission.score >= IMGSubmissionParams.SCORE_THRESHOLD
-                and image_submission.upvote_ratio >= IMGSubmissionParams.RATIO_THRESHOLD):
-                flair_id = IMGSubmissionParams.APPROVED_FLAIR_ID
+        try:
+            if (image_submission.link_flair_template_id == IMGSubmissionParams.CARD_SUBMISSION_FLAIR_ID
+                and image_submission.approved):
+                flair_id = IMGSubmissionParams.PENDING_FLAIR_ID
                 logger.info(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
                 print(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
 
-        if (image_submission.link_flair_template_id == IMGSubmissionParams.PENDING_FLAIR_ID
-                and int(time.time()) - image_submission.created_utc
-                > IMGSubmissionParams.MAX_IMAGE_APPROVE_TIMEDELTA):
-            flair_id = IMGSubmissionParams.REJECTED_FLAIR_ID
-            logger.info(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
-            print(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
+            if image_submission.link_flair_template_id == IMGSubmissionParams.PENDING_FLAIR_ID:
+                if (image_submission.score >= IMGSubmissionParams.SCORE_THRESHOLD
+                    and image_submission.upvote_ratio >= IMGSubmissionParams.RATIO_THRESHOLD):
+                    flair_id = IMGSubmissionParams.APPROVED_FLAIR_ID
+                    logger.info(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
+                    print(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
+
+            if (image_submission.link_flair_template_id == IMGSubmissionParams.PENDING_FLAIR_ID
+                    and int(time.time()) - image_submission.created_utc
+                    > IMGSubmissionParams.MAX_IMAGE_APPROVE_TIMEDELTA):
+                flair_id = IMGSubmissionParams.REJECTED_FLAIR_ID
+                logger.info(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
+                print(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
+
+        except AttributeError:
+            flair_id = IMGSubmissionParams.META_FEEDBACK_OTHER_FLAIR_ID
+            logger.info(f"The flair for https://reddit.com{image_submission.permalink} is missing. Using 'Other'.")
+            print(f"The flair for https://reddit.com{image_submission.permalink} is missing. Using 'Other'.")
 
     return flair_id
 
@@ -147,7 +153,7 @@ def update_flair(image_submission: praw.Reddit.submission, new_flair_id: str):
     elif new_flair_id == IMGSubmissionParams.REJECTED_FLAIR_ID:
         flair_text = "rejected"
     else:
-        flair_text = "unknown"
+        flair_text = "some other flair"
 
     image_submission.mod.flair(flair_template_id=new_flair_id)
     logger.info(f"Flair status for {image_submission.id} updated to '{flair_text}'.")
