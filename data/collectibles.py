@@ -99,7 +99,8 @@ class StormCrow(CollectibleCards):
     |                      / 1 /  \\|
     |                      \\  / 2 /|
     | ==>John Matson      #{count_str}    |
-    \\______________________________/\n\n""")
+    \\______________________________/\n\n
+*^(You are No. {count_str}! This content is best viewed by opening this reply directly.)*\n\n""")
         return art
 
 
@@ -154,5 +155,6 @@ class ColossalDreadmaw(CollectibleCards):
     |                      / 6 /  \\|
     | #{count_str} C              \\  / 6 /|
     | M19•EN  ==>Jesper Ejsing     |
-    \\______________________________/\n\n''')
+    \\______________________________/\n\n
+*^(You are No. {count_str}! This content is best viewed by opening this reply directly.)*\n\n\n\n''')
         return art
