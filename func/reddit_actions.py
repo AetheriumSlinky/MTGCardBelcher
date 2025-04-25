@@ -174,12 +174,12 @@ def comment_action(reddit_data: RedditData, target_subreddit: str, image_links: 
             low_matches = [item.casefold() for item in comment_regex_matches]
             if comment_requires_action(comment, comment_regex_matches):
 
-                if (MiscSettings.NTF_REPLIES_ON
+                if (MiscSettings.NFT_REPLIES_ON
                         and ColossalDreadmaw.NAME.casefold() in low_matches
                         and dreadmaw_timer.single_timer()):
                     special_reply(reddit_data, comment, ColossalDreadmaw.NAME)
 
-                elif (MiscSettings.NTF_REPLIES_ON
+                elif (MiscSettings.NFT_REPLIES_ON
                       and StormCrow.NAME.casefold() in low_matches
                       and stormcrow_timer.single_timer()):
                     special_reply(reddit_data, comment, StormCrow.NAME)
@@ -204,12 +204,12 @@ def submission_action(reddit_data: RedditData, target_subreddit, image_links: li
             low_matches = [item.casefold() for item in submission_regex_matches]
             if submission_requires_action(submission, submission_regex_matches):
 
-                if (MiscSettings.NTF_REPLIES_ON
+                if (MiscSettings.NFT_REPLIES_ON
                         and ColossalDreadmaw.NAME.casefold() in low_matches
                         and dreadmaw_timer.single_timer()):
                     special_reply(reddit_data, submission, ColossalDreadmaw.NAME)
 
-                elif (MiscSettings.NTF_REPLIES_ON
+                elif (MiscSettings.NFT_REPLIES_ON
                       and StormCrow.NAME.casefold() in low_matches
                       and stormcrow_timer.single_timer()):
                     special_reply(reddit_data, submission, StormCrow.NAME)

@@ -58,7 +58,7 @@ class MiscSettings:
     IGNORE_CALLS_FROM = ['MTGCardBelcher', 'MTGCardFetcher']
     WEEKLY_UNJERK = re.compile(r'.*unjerk.*thread.*', flags=re.IGNORECASE)
     BOTTOM_5 = re.compile(r'.*bottom.*scoring.*', flags=re.IGNORECASE)
-    NTF_REPLIES_ON = True
+    NFT_REPLIES_ON = True
 
 
 # This timer is set for the Negate special flavour so that it's not called too often (once a day)
