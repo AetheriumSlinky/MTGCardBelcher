@@ -88,7 +88,7 @@ class StormCrow(CollectibleCards):
     ||     ..-''´ __..--´         ||
     ||    ´´´´ ```^^              ||
     ||____________________________||
-    | (Creature ── Bird         \\9/|
+    | (Creature ── Bird)        \\9/|
     |                              |
     |                              |
     | Flying                       |
