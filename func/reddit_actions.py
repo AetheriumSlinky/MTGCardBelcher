@@ -170,22 +170,26 @@ def comment_action(reddit_data: RedditData, target_subreddit: str, image_links: 
     """
     for comment in reddit_data.subreddit_streams[target_subreddit].comments:
         if comment is not None:
-            comment_regex_matches = get_regex_bracket_matches(comment.body)
-            low_matches = [item.casefold() for item in comment_regex_matches]
-            if comment_requires_action(comment, comment_regex_matches):
+            try:
+                comment_regex_matches = get_regex_bracket_matches(comment.body)
+                low_matches = [item.casefold() for item in comment_regex_matches]
+                if comment_requires_action(comment, comment_regex_matches):
 
-                if (MiscSettings.NFT_REPLIES_ON
-                        and ColossalDreadmaw.NAME.casefold() in low_matches
-                        and dreadmaw_timer.single_timer()):
-                    special_reply(reddit_data, comment, ColossalDreadmaw.NAME)
+                    if (MiscSettings.NFT_REPLIES_ON
+                            and ColossalDreadmaw.NAME.casefold() in low_matches
+                            and dreadmaw_timer.single_timer()):
+                        special_reply(reddit_data, comment, ColossalDreadmaw.NAME)
 
-                elif (MiscSettings.NFT_REPLIES_ON
-                      and StormCrow.NAME.casefold() in low_matches
-                      and stormcrow_timer.single_timer()):
-                    special_reply(reddit_data, comment, StormCrow.NAME)
+                    elif (MiscSettings.NFT_REPLIES_ON
+                          and StormCrow.NAME.casefold() in low_matches
+                          and stormcrow_timer.single_timer()):
+                        special_reply(reddit_data, comment, StormCrow.NAME)
 
-                else:
-                    comment_reply(comment, comment_regex_matches, image_links)
+                    else:
+                        comment_reply(comment, comment_regex_matches, image_links)
+            except AttributeError as e:
+                logger.warning(f"An AttributeError was thrown most likely due to a deleted comment. Full error: {e}")
+                break
         else:
             break
 
@@ -200,22 +204,28 @@ def submission_action(reddit_data: RedditData, target_subreddit, image_links: li
     """
     for submission in reddit_data.subreddit_streams[target_subreddit].submissions:
         if submission is not None:
-            submission_regex_matches = get_regex_bracket_matches(submission.selftext)
-            low_matches = [item.casefold() for item in submission_regex_matches]
-            if submission_requires_action(submission, submission_regex_matches):
+            try:
+                submission_regex_matches = get_regex_bracket_matches(submission.selftext)
+                low_matches = [item.casefold() for item in submission_regex_matches]
+                if submission_requires_action(submission, submission_regex_matches):
 
-                if (MiscSettings.NFT_REPLIES_ON
-                        and ColossalDreadmaw.NAME.casefold() in low_matches
-                        and dreadmaw_timer.single_timer()):
-                    special_reply(reddit_data, submission, ColossalDreadmaw.NAME)
+                    if (MiscSettings.NFT_REPLIES_ON
+                            and ColossalDreadmaw.NAME.casefold() in low_matches
+                            and dreadmaw_timer.single_timer()):
+                        special_reply(reddit_data, submission, ColossalDreadmaw.NAME)
 
-                elif (MiscSettings.NFT_REPLIES_ON
-                      and StormCrow.NAME.casefold() in low_matches
-                      and stormcrow_timer.single_timer()):
-                    special_reply(reddit_data, submission, StormCrow.NAME)
+                    elif (MiscSettings.NFT_REPLIES_ON
+                          and StormCrow.NAME.casefold() in low_matches
+                          and stormcrow_timer.single_timer()):
+                        special_reply(reddit_data, submission, StormCrow.NAME)
 
-                else:
-                    submission_reply(submission, submission_regex_matches, image_links)
+                    else:
+                        submission_reply(submission, submission_regex_matches, image_links)
+
+            except AttributeError as e:
+                logger.warning(f"An AttributeError was thrown most likely due to a deleted comment. Full error: {e}")
+                break
+
         else:
             break
 
