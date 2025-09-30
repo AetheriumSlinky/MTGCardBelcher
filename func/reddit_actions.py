@@ -16,6 +16,20 @@ from data.collectibles import ColossalDreadmaw, StormCrow
 from func.text_functions import get_regex_bracket_matches, generate_reply_text
 
 
+class ImageSubmission:
+    """
+    Image submission params.
+    """
+    def __init__(self, image_submission: praw.Reddit.submission):
+        self.flair_id = image_submission.link_flair_template_id
+        self.created = image_submission.created_utc
+        self.score = image_submission.score
+        self.ratio = image_submission.upvote_ratio
+        self.permalink = image_submission.permalink
+        self.url = image_submission.url
+        self.approved = image_submission.approved
+
+
 def main_error_handler(func):
     """
     Raises MainOperationError during abnormal operation.
@@ -48,7 +62,7 @@ def main_error_handler(func):
 
 
 @main_error_handler
-def source_sub_action(reddit_data: RedditData, source_subreddits: list) -> list:
+def sub_actions(reddit_data: RedditData, source_subreddits: list) -> list:
     """
     Executes checks and actions in the image submission subreddit. Returns a list of image candidates.
     :param reddit_data: RedditData object.
@@ -57,31 +71,50 @@ def source_sub_action(reddit_data: RedditData, source_subreddits: list) -> list:
     """
     reddit: praw.Reddit = reddit_data.reddit
     image_candidate_urls = ['https://i.redd.it/pcmd6d3o1oad1.png'] # Jollyver is always an option - RIP LardFetcher
-    flair_update_count = 0
+    pending_count = 0
+    reject_count = 0
+    approve_count = 0
 
     for source in source_subreddits:
 
         # Iterate over all fetchable submissions
         for image_submission in reddit.subreddit(source).new(limit=Subreddits.MAX_IMAGE_SUBMISSIONS):
 
-            # Figure out if a new flair is needed for an image post
-            new_flair_id = determine_new_flair_id(image_submission, source)
+            try:
+                img_sub = ImageSubmission(image_submission)
 
-            # If a new flair was generated update current flair
-            if new_flair_id:
-                flair_update_count += 1
-                update_flair(image_submission, new_flair_id)
+                if should_pending(img_sub):
+                    update_flair(image_submission, IMGSubmissionParams.PENDING_FLAIR_ID)
+                    img_sub.flair_id = IMGSubmissionParams.PENDING_FLAIR_ID
+                    pending_count += 1
+
+                if should_approve(img_sub):
+                    update_flair(image_submission, IMGSubmissionParams.APPROVED_FLAIR_ID)
+                    img_sub.flair_id = IMGSubmissionParams.APPROVED_FLAIR_ID
+                    approve_count += 1
+
+                if should_reject(img_sub):
+                    update_flair(image_submission, IMGSubmissionParams.REJECTED_FLAIR_ID)
+                    img_sub.flair_id = IMGSubmissionParams.REJECTED_FLAIR_ID
+                    reject_count += 1
+
+            except AttributeError:
+                update_flair(image_submission, IMGSubmissionParams.META_FEEDBACK_OTHER_FLAIR_ID)
+                logger.info(f"Something for https://reddit.com{image_submission.permalink} is missing. Investigate.")
+                print(f"Something for https://reddit.com{image_submission.permalink} is missing. Investigate.")
 
             # Check if submission has the correct flair
-            if image_submission_is_eligible(image_submission, source):
+            if is_valid_image_submission(image_submission, source):
                 image_candidate_urls.append(image_submission.url)
 
-    logger.info(f"Found and updated {str(flair_update_count)} image submission flairs.")
-    logger.info(f"Found {str(len(image_candidate_urls))} valid image submissions.")
+    logger.info(f"Found {str(pending_count)} new image submissions.")
+    logger.info(f"Updated {str(approve_count + reject_count)} old submissions.")
+    logger.info(f"Using {str(len(image_candidate_urls))} valid image submissions.")
+
     return image_candidate_urls
 
 
-def image_submission_is_eligible(image_submission: praw.Reddit.submission, source_subreddit: str) -> bool:
+def is_valid_image_submission(image_submission: praw.Reddit.submission, source_subreddit: str) -> bool:
     """
     Checks for image submission eligibility.
     :param image_submission: An image submission candidate.
@@ -91,53 +124,51 @@ def image_submission_is_eligible(image_submission: praw.Reddit.submission, sourc
     if ((source_subreddit not in image_submission.url)
             and (re.search('(i.redd.it|i.imgur.com)', image_submission.url))
             and (image_submission.link_flair_template_id == IMGSubmissionParams.APPROVED_FLAIR_ID)):
-
-            # Fetching from the correct place, post is an image and has the correct flair
-            return True
-
-    # At least one of the conditions was off, probably the flair
+        return True
     return False
 
 
-def determine_new_flair_id(image_submission: praw.Reddit.submission, source_subreddit: str) -> str:
+def should_pending(img_sub: ImageSubmission) -> bool:
     """
-    Determines the new flair ID for an image submission if its status has changed since the last check.
-    :param image_submission: Image submission.
-    :param source_subreddit: Image source subreddit name.
-    :return: If a change is needed a new flair ID string, otherwise an empty string.
+    Checks whether user-assigned flair should be set to pending if it is approved.
+    :param img_sub: An ImageSubmission object with Reddit submission's attributes.
+    :return: True if flair should be changed, otherwise False.
     """
-    flair_id = ''
+    if (img_sub.flair_id == IMGSubmissionParams.CARD_SUBMISSION_FLAIR_ID
+        and img_sub.approved):
+        logger.info(f"The flair for https://reddit.com{img_sub.permalink} should be updated to pending status.")
+        print(f"The flair for https://reddit.com{img_sub.permalink} should be updated to pending status.")
+        return True
+    return False
 
-    if (source_subreddit not in image_submission.url
-        and re.search('(i.redd.it|i.imgur.com)', image_submission.url)):
 
-        try:
-            if (image_submission.link_flair_template_id == IMGSubmissionParams.CARD_SUBMISSION_FLAIR_ID
-                and image_submission.approved):
-                flair_id = IMGSubmissionParams.PENDING_FLAIR_ID
-                logger.info(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
-                print(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
+def should_approve(img_sub: ImageSubmission) -> bool:
+    """
+    Checks whether a pending status submission should be an eligible image submission used by the bot.
+    :param img_sub: An ImageSubmission object with Reddit submission's attributes.
+    :return: True if flair should be changed, otherwise False.
+    """
+    if (img_sub.flair_id == IMGSubmissionParams.PENDING_FLAIR_ID
+        and img_sub.score >= IMGSubmissionParams.SCORE_THRESHOLD
+        and img_sub.ratio >= IMGSubmissionParams.RATIO_THRESHOLD):
+        logger.info(f"The https://reddit.com{img_sub.permalink} submission should be approved.")
+        print(f"The https://reddit.com{img_sub.permalink} submission should be approved.")
+        return True
+    return False
 
-            if image_submission.link_flair_template_id == IMGSubmissionParams.PENDING_FLAIR_ID:
-                if (image_submission.score >= IMGSubmissionParams.SCORE_THRESHOLD
-                    and image_submission.upvote_ratio >= IMGSubmissionParams.RATIO_THRESHOLD):
-                    flair_id = IMGSubmissionParams.APPROVED_FLAIR_ID
-                    logger.info(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
-                    print(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
 
-            if (image_submission.link_flair_template_id == IMGSubmissionParams.PENDING_FLAIR_ID
-                    and int(time.time()) - image_submission.created_utc
-                    > IMGSubmissionParams.MAX_IMAGE_APPROVE_TIMEDELTA):
-                flair_id = IMGSubmissionParams.REJECTED_FLAIR_ID
-                logger.info(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
-                print(f"The flair for https://reddit.com{image_submission.permalink} should be updated.")
-
-        except AttributeError:
-            flair_id = IMGSubmissionParams.META_FEEDBACK_OTHER_FLAIR_ID
-            logger.info(f"The flair for https://reddit.com{image_submission.permalink} is missing. Using 'Other'.")
-            print(f"The flair for https://reddit.com{image_submission.permalink} is missing. Using 'Other'.")
-
-    return flair_id
+def should_reject(img_sub: ImageSubmission) -> bool:
+    """
+    Checks whether a pending status submission should become a rejected submission.
+    :param img_sub: An ImageSubmission object with Reddit submission's attributes.
+    :return: True if flair should be changed, otherwise False.
+    """
+    if (img_sub.flair_id == IMGSubmissionParams.PENDING_FLAIR_ID
+        and int(time.time()) - img_sub.created > IMGSubmissionParams.MAX_IMAGE_APPROVE_TIMEDELTA):
+        logger.info(f"The https://reddit.com{img_sub.permalink} submission should be rejected.")
+        print(f"The https://reddit.com{img_sub.permalink} submission should be rejected.")
+        return True
+    return False
 
 
 def update_flair(image_submission: praw.Reddit.submission, new_flair_id: str):
@@ -146,18 +177,9 @@ def update_flair(image_submission: praw.Reddit.submission, new_flair_id: str):
     :param image_submission: Image submission.
     :param new_flair_id:
     """
-    if new_flair_id == IMGSubmissionParams.PENDING_FLAIR_ID:
-        flair_text = "pending"
-    elif new_flair_id == IMGSubmissionParams.APPROVED_FLAIR_ID:
-        flair_text = "approved"
-    elif new_flair_id == IMGSubmissionParams.REJECTED_FLAIR_ID:
-        flair_text = "rejected"
-    else:
-        flair_text = "some other flair"
-
     image_submission.mod.flair(flair_template_id=new_flair_id)
-    logger.info(f"Flair status for {image_submission.id} updated to '{flair_text}'.")
-    print(f"Flair status for {image_submission.id} updated to '{flair_text}'.")
+    logger.info(f"Flair status for {image_submission.id} updated.")
+    print(f"Flair status for {image_submission.id} updated.")
 
 
 @main_error_handler
@@ -169,6 +191,7 @@ def comment_action(reddit_data: RedditData, target_subreddit: str, image_links: 
     :param image_links: Image link candidates.
     """
     for comment in reddit_data.subreddit_streams[target_subreddit].comments:
+
         if comment is not None:
             try:
                 comment_regex_matches = get_regex_bracket_matches(comment.body)

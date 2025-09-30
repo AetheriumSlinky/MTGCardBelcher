@@ -20,7 +20,7 @@ def main():
     # Login
     try:
         connection = RedditData(BotInfo.REDDIT_OAUTH, Subreddits.CALL_SUBREDDITS)
-        image_submission_links = r.source_sub_action(connection, Subreddits.SUBMISSION_SUBREDDITS)
+        image_submission_links = r.sub_actions(connection, Subreddits.SUBMISSION_SUBREDDITS)
     except FatalLoginError as e:
         print(e)
         sys.exit()
@@ -32,7 +32,7 @@ def main():
     while True:
         try:
             if image_refresh.recurring_timer():  # Has 30 minutes passed?
-                image_submission_links = r.source_sub_action(connection, Subreddits.SUBMISSION_SUBREDDITS)
+                image_submission_links = r.sub_actions(connection, Subreddits.SUBMISSION_SUBREDDITS)
 
             for sub in Subreddits.CALL_SUBREDDITS:
                 r.comment_action(connection, sub, image_submission_links)
