@@ -261,10 +261,9 @@ def comment_requires_action(comment_data: praw.Reddit.comment, regex_matches: li
     :param regex_matches: A list of regex matches in the comment.
     :return: True if comment requires action.
     """
-    comment_parent_exclusions = []
-
-    for parent_title in MiscSettings.COMMENTS_EXCLUSIONS:
-        comment_parent_exclusions.append(parent_title.search(string=comment_data.submission.title))
+    comment_parent_exclusions = [
+        title.search(string=comment_data.submission.title) for title in MiscSettings.COMMENTS_EXCLUSIONS
+    ]
 
     if comment_data.author.name in MiscSettings.IGNORE_CALLS_FROM:  # Bots
         logger.info("Bot will not reply to itself or to the real CardFetcher (comment). " + comment_data.id)
@@ -274,8 +273,8 @@ def comment_requires_action(comment_data: praw.Reddit.comment, regex_matches: li
         logger.info("No matches in comment. " + comment_data.id)
         return False
 
-    elif None not in comment_parent_exclusions:  # Is on exclusion list
-        logger.info("Parent submission of the comment on exclusion list. " + comment_data.id)
+    elif any(comment_parent_exclusions):  # Is on exclusion list
+        logger.info("Submission of the comment on exclusion list. " + comment_data.id)
         return False
 
     else:  # Eligible for reply
@@ -293,6 +292,11 @@ def submission_requires_action(submission_data: praw.Reddit.submission, regex_ma
     :param regex_matches: A list of regex matches in the submission.
     :return: True if submission requires action.
     """
+
+    submission_exclusions = [
+        title.search(string=submission_data.title) for title in MiscSettings.SUBMISSION_EXCLUSIONS
+    ]
+
     if submission_data.author.name in MiscSettings.IGNORE_CALLS_FROM:  # Bots
         logger.info(
             "Bot will not reply to itself or to the real CardFetcher (submission). "
@@ -303,7 +307,7 @@ def submission_requires_action(submission_data: praw.Reddit.submission, regex_ma
         logger.info("No matches in submission. " + submission_data.id)
         return False
 
-    elif None not in MiscSettings.SUBMISSION_EXCLUSIONS:  # Is on exclusion list
+    elif any(submission_exclusions):  # Is on exclusion list
         logger.info("Submission on exclusion list. " + submission_data.id)
         return False
 
