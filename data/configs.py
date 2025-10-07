@@ -56,7 +56,7 @@ class MiscSettings:
     Miscellaneous bot settings.
     """
     IGNORE_CALLS_FROM = ['MTGCardBelcher', 'MTGCardFetcher']
-    WEEKLY_UNJERK = re.compile(r'.*unjerk.*thread.*', flags=re.IGNORECASE)
+    WEEKLY_UNJERK = re.compile(r'.*weekly.*unjerk.*thread.*', flags=re.IGNORECASE)
     BOTTOM_5 = re.compile(r'.*bottom.*scoring.*', flags=re.IGNORECASE)
     SUBMISSION_EXCLUSIONS = [WEEKLY_UNJERK, BOTTOM_5]
     COMMENTS_EXCLUSIONS = [WEEKLY_UNJERK]
