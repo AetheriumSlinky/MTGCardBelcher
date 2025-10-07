@@ -145,11 +145,11 @@ def generate_reply_text(regex_matches: list, links: list) -> str:
         choose_special = random.randint(0, 1001)
 
     if choose_special == 0:  # Text-only replies, no links
-        reply.body = random.choice(replies.ReplyLinklessTexts.random_linkless_reply())
+        reply.body = replies.ReplyLinklessTexts.random_linkless_reply()
         logger.warning("Easter egg with no image links delivered. Please investigate reception.")
 
     elif choose_special == 1:  # Special delivery line, yes links
-        reply.header = random.choice(replies.ReplyHeaders.random_special_header())
+        reply.header = replies.ReplyHeaders.random_special_header()
         logger.info("Easter egg header reply delivered.")
 
     elif choose_special > 1:  # The normal mode - determine a random creature type
