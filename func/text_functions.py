@@ -4,7 +4,7 @@ import random
 import re
 
 from func.base_logger import logger
-from data.configs import negate_timer
+from data.configs import MiscSettings, negate_timer
 from data.collectibles import ColossalDreadmaw, StormCrow
 from data.rastamon_cards import Rastamon, RastamonCard
 import data.replies as replies
@@ -169,7 +169,7 @@ def generate_reply_text(regex_matches: list, links: list) -> str:
 
             # Some overrides for Negate copypasta
             elif cardname.casefold() in replies.Spellings.NEGATE and negate_timer.single_timer():
-                negate_timer.new_expiry_time(60 * 60 * 24)  # Set new expiry in a day from now
+                negate_timer.new_expiry_time(MiscSettings.SPECIAL_TIMER)  # Set new expiry in a day from now
                 reply = set_negate(reply, cardname)
                 logger.info("Negate flavour used up for today. See you tomorrow!")
 

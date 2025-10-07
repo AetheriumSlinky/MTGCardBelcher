@@ -191,9 +191,9 @@ def comment_action(reddit_data: RedditData, target_subreddit: str, image_links: 
     :param image_links: Image link candidates.
     """
     for comment in reddit_data.subreddit_streams[target_subreddit].comments:
-
         if comment is not None:
             try:
+                item_type = "comment"
                 comment_regex_matches = get_regex_bracket_matches(comment.body)
                 low_matches = [item.casefold() for item in comment_regex_matches]
                 if comment_requires_action(comment, comment_regex_matches):
@@ -201,15 +201,15 @@ def comment_action(reddit_data: RedditData, target_subreddit: str, image_links: 
                     if (MiscSettings.NFT_REPLIES_ON
                             and ColossalDreadmaw.NAME.casefold() in low_matches
                             and dreadmaw_timer.single_timer()):
-                        special_reply(reddit_data, comment, ColossalDreadmaw.NAME)
+                        special_reply(item_type, reddit_data, comment, ColossalDreadmaw.NAME)
 
                     elif (MiscSettings.NFT_REPLIES_ON
                           and StormCrow.NAME.casefold() in low_matches
                           and stormcrow_timer.single_timer()):
-                        special_reply(reddit_data, comment, StormCrow.NAME)
+                        special_reply(item_type, reddit_data, comment, StormCrow.NAME)
 
                     else:
-                        comment_reply(comment, comment_regex_matches, image_links)
+                        item_reply(item_type, comment, comment_regex_matches, image_links)
             except AttributeError as e:
                 logger.warning(f"An AttributeError was thrown most likely due to a deleted comment. Full error: {e}")
                 break
@@ -228,6 +228,7 @@ def submission_action(reddit_data: RedditData, target_subreddit, image_links: li
     for submission in reddit_data.subreddit_streams[target_subreddit].submissions:
         if submission is not None:
             try:
+                item_type = "submission"
                 submission_regex_matches = get_regex_bracket_matches(submission.selftext)
                 low_matches = [item.casefold() for item in submission_regex_matches]
                 if submission_requires_action(submission, submission_regex_matches):
@@ -235,15 +236,15 @@ def submission_action(reddit_data: RedditData, target_subreddit, image_links: li
                     if (MiscSettings.NFT_REPLIES_ON
                             and ColossalDreadmaw.NAME.casefold() in low_matches
                             and dreadmaw_timer.single_timer()):
-                        special_reply(reddit_data, submission, ColossalDreadmaw.NAME)
+                        special_reply(item_type, reddit_data, submission, ColossalDreadmaw.NAME)
 
                     elif (MiscSettings.NFT_REPLIES_ON
                           and StormCrow.NAME.casefold() in low_matches
                           and stormcrow_timer.single_timer()):
-                        special_reply(reddit_data, submission, StormCrow.NAME)
+                        special_reply(item_type, reddit_data, submission, StormCrow.NAME)
 
                     else:
-                        submission_reply(submission, submission_regex_matches, image_links)
+                        item_reply(item_type, submission, submission_regex_matches, image_links)
 
             except AttributeError as e:
                 logger.warning(f"An AttributeError was thrown most likely due to a deleted comment. Full error: {e}")
@@ -260,10 +261,10 @@ def comment_requires_action(comment_data: praw.Reddit.comment, regex_matches: li
     :param regex_matches: A list of regex matches in the comment.
     :return: True if comment requires action.
     """
-    # State exclusions
-    submission_exclusions = [
-        MiscSettings.WEEKLY_UNJERK.search(string=comment_data.submission.title)
-    ]
+    comment_parent_exclusions = []
+
+    for parent_title in MiscSettings.COMMENTS_EXCLUSIONS:
+        comment_parent_exclusions.append(parent_title.search(string=comment_data.submission.title))
 
     if comment_data.author.name in MiscSettings.IGNORE_CALLS_FROM:  # Bots
         logger.info("Bot will not reply to itself or to the real CardFetcher (comment). " + comment_data.id)
@@ -273,7 +274,7 @@ def comment_requires_action(comment_data: praw.Reddit.comment, regex_matches: li
         logger.info("No matches in comment. " + comment_data.id)
         return False
 
-    elif None not in submission_exclusions:  # Is on exclusion list
+    elif None not in comment_parent_exclusions:  # Is on exclusion list
         logger.info("Parent submission of the comment on exclusion list. " + comment_data.id)
         return False
 
@@ -292,12 +293,6 @@ def submission_requires_action(submission_data: praw.Reddit.submission, regex_ma
     :param regex_matches: A list of regex matches in the submission.
     :return: True if submission requires action.
     """
-    # State exclusions
-    submission_exclusions = [
-        MiscSettings.WEEKLY_UNJERK.search(string=submission_data.title),
-        MiscSettings.BOTTOM_5.search(string=submission_data.title),
-    ]
-
     if submission_data.author.name in MiscSettings.IGNORE_CALLS_FROM:  # Bots
         logger.info(
             "Bot will not reply to itself or to the real CardFetcher (submission). "
@@ -308,7 +303,7 @@ def submission_requires_action(submission_data: praw.Reddit.submission, regex_ma
         logger.info("No matches in submission. " + submission_data.id)
         return False
 
-    elif None not in submission_exclusions:  # Is on exclusion list
+    elif None not in MiscSettings.SUBMISSION_EXCLUSIONS:  # Is on exclusion list
         logger.info("Submission on exclusion list. " + submission_data.id)
         return False
 
@@ -320,35 +315,24 @@ def submission_requires_action(submission_data: praw.Reddit.submission, regex_ma
         return True
 
 
-def comment_reply(comment_data: praw.Reddit.comment, regex_matches: list, image_links: list):
+def item_reply(item_type: str, item_data: praw.Reddit.comment, regex_matches: list, image_links: list):
     """
-    Executes the reply action to an eligible comment.
-    :param comment_data: Comment to reply to.
-    :param regex_matches: A list of regex matches in the comment.
+    Executes the reply action to an eligible item.
+    :param item_type:
+    :param item_data: Item to reply to.
+    :param regex_matches: A list of regex matches in the item.
     :param image_links: A list of image candidate links.
     """
     reply_text = generate_reply_text(regex_matches, image_links)
-    comment_data.reply(reply_text)
-    logger.info("Comment reply successful: https://www.reddit.com" + comment_data.permalink)
-    print("Comment reply successful: https://www.reddit.com" + comment_data.permalink)
+    item_data.reply(reply_text)
+    logger.info(f"Reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
+    print(f"Reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
 
 
-def submission_reply(submission_data: praw.Reddit.submission, regex_matches: list, image_links: list):
-    """
-    Executes the reply action to an eligible submission.
-    :param submission_data: Submission to reply to.
-    :param regex_matches: A list of regex matches in the submission.
-    :param image_links: A list of image candidate links.
-    """
-    reply_text = generate_reply_text(regex_matches, image_links)
-    submission_data.reply(reply_text)
-    logger.info("Submission reply successful: https://www.reddit.com" + submission_data.permalink)
-    print("Submission reply successful: https://www.reddit.com" + submission_data.permalink)
-
-
-def special_reply(reddit_data: RedditData, item, callname: str):
+def special_reply(item_type: str, reddit_data: RedditData, item, callname: str):
     """
     Executes the special collectible reply action to an eligible comment or submission.
+    :param item_type:
     :param reddit_data: A RedditData object.
     :param item: A comment or a submission.
     :param callname: Name of the card that was called.
@@ -357,12 +341,12 @@ def special_reply(reddit_data: RedditData, item, callname: str):
         dreadmaw_art = reddit_data.collectibles[ColossalDreadmaw.NAME].dreadmaw_ascii_art()
         item.reply(dreadmaw_art)
         dreadmaw_timer.new_expiry_time(random.randint(ColossalDreadmaw.TIMER_MIN, ColossalDreadmaw.TIMER_MAX))
-        logger.info("Colossal Dreadmaw collectible NFT reply successful: https://www.reddit.com" + item.permalink)
-        print("Colossal Dreadmaw collectible NFT reply successful: https://www.reddit.com" + item.permalink)
+        logger.info(f"Colossal Dreadmaw NFT reply to {item_type} successful: https://www.reddit.com" + item.permalink)
+        print(f"Colossal Dreadmaw NFT reply to {item_type} successful: https://www.reddit.com" + item.permalink)
 
     elif callname == StormCrow.NAME:
         stormcrow_art = reddit_data.collectibles[StormCrow.NAME].stormcrow_ascii_art()
         item.reply(stormcrow_art)
         stormcrow_timer.new_expiry_time(random.randint(StormCrow.TIMER_MIN, StormCrow.TIMER_MAX))
-        logger.info("Storm Crow collectible NFT reply successful: https://www.reddit.com" + item.permalink)
-        print("Storm Crow collectible NFT reply successful: https://www.reddit.com" + item.permalink)
+        logger.info(f"Storm Crow NFT reply to {item_type} successful: https://www.reddit.com" + item.permalink)
+        print(f"Storm Crow NFT reply to {item_type} successful: https://www.reddit.com" + item.permalink)
