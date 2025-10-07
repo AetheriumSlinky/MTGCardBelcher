@@ -6,7 +6,7 @@ from func.base_logger import logger
 from func.reddit_connection import RedditData
 from func.timer import RefreshTimer
 from data.exceptions import MainOperationException, FatalLoginError
-from data.configs import oauth, submissions_subreddits, target_subreddits
+from data.configs import BotInfo, Subreddits
 import func.reddit_actions as r
 
 
@@ -19,8 +19,8 @@ def main():
 
     # Login
     try:
-        connection = RedditData(oauth, target_subreddits)  # Open Reddit
-        image_submission_links = r.get_image_links(connection, submissions_subreddits) # Fetch the images
+        connection = RedditData(BotInfo.REDDIT_OAUTH, Subreddits.CALL_SUBREDDITS)
+        image_submission_links = r.sub_actions(connection, Subreddits.SUBMISSION_SUBREDDITS)
     except FatalLoginError as e:
         print(e)
         sys.exit()
@@ -28,18 +28,18 @@ def main():
     logger.info('Reddit session successfully started.')
     print("...init complete.")
 
-    # Main loop
+    # Loop
     while True:
         try:
             if image_refresh.recurring_timer():  # Has 30 minutes passed?
-                image_submission_links = r.get_image_links(connection, submissions_subreddits)
+                image_submission_links = r.sub_actions(connection, Subreddits.SUBMISSION_SUBREDDITS)
 
-            for sub in target_subreddits:
+            for sub in Subreddits.CALL_SUBREDDITS:
                 r.comment_action(connection, sub, image_submission_links)
                 r.submission_action(connection, sub, image_submission_links)
 
         except MainOperationException:
-            connection = RedditData(oauth, target_subreddits)
+            connection = RedditData(BotInfo.REDDIT_OAUTH, Subreddits.CALL_SUBREDDITS)
 
         except FatalLoginError as e:
             print(e)
