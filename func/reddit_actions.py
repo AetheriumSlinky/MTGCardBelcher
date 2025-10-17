@@ -265,7 +265,12 @@ def comment_requires_action(comment_data: praw.Reddit.comment, regex_matches: li
         title.search(string=comment_data.submission.title) for title in MiscSettings.COMMENTS_EXCLUSIONS
     ]
 
-    if comment_data.author.name in MiscSettings.IGNORE_CALLS_FROM:  # Bots
+    if time.time() - comment_data.created_utc > 10 * 60:
+        logger.info("The comment is over 10 minutes old i.e. Reddit is bugging out. Skipping replying. "
+                    + comment_data.id)
+        return False
+
+    elif comment_data.author.name in MiscSettings.IGNORE_CALLS_FROM:  # Bots
         logger.info("Bot will not reply to itself or to the real CardFetcher (comment). " + comment_data.id)
         return False
 
@@ -297,7 +302,12 @@ def submission_requires_action(submission_data: praw.Reddit.submission, regex_ma
         title.search(string=submission_data.title) for title in MiscSettings.SUBMISSION_EXCLUSIONS
     ]
 
-    if submission_data.author.name in MiscSettings.IGNORE_CALLS_FROM:  # Bots
+    if time.time() - submission_data.created_utc > 10 * 60:
+        logger.info("The submission is over 10 minutes old i.e. Reddit is bugging out. Skipping replying. "
+                    + submission_data.id)
+        return False
+
+    elif submission_data.author.name in MiscSettings.IGNORE_CALLS_FROM:  # Bots
         logger.info(
             "Bot will not reply to itself or to the real CardFetcher (submission). "
             + submission_data.id)
@@ -319,7 +329,7 @@ def submission_requires_action(submission_data: praw.Reddit.submission, regex_ma
         return True
 
 
-def item_reply(item_type: str, item_data: praw.Reddit.comment, regex_matches: list, image_links: list):
+def item_reply(item_type: str, item_data, regex_matches: list, image_links: list):
     """
     Executes the reply action to an eligible item.
     :param item_type:
@@ -333,24 +343,24 @@ def item_reply(item_type: str, item_data: praw.Reddit.comment, regex_matches: li
     print(f"Reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
 
 
-def special_reply(item_type: str, reddit_data: RedditData, item, callname: str):
+def special_reply(item_type: str, reddit_data: RedditData, item_data, callname: str):
     """
     Executes the special collectible reply action to an eligible comment or submission.
     :param item_type:
     :param reddit_data: A RedditData object.
-    :param item: A comment or a submission.
+    :param item_data: A comment or a submission.
     :param callname: Name of the card that was called.
     """
     if callname == ColossalDreadmaw.NAME:
         dreadmaw_art = reddit_data.collectibles[ColossalDreadmaw.NAME].dreadmaw_ascii_art()
-        item.reply(dreadmaw_art)
+        item_data.reply(dreadmaw_art)
         dreadmaw_timer.new_expiry_time(random.randint(ColossalDreadmaw.TIMER_MIN, ColossalDreadmaw.TIMER_MAX))
-        logger.info(f"Colossal Dreadmaw NFT reply to {item_type} successful: https://www.reddit.com" + item.permalink)
-        print(f"Colossal Dreadmaw NFT reply to {item_type} successful: https://www.reddit.com" + item.permalink)
+        logger.info(f"Colossal Dreadmaw NFT reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
+        print(f"Colossal Dreadmaw NFT reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
 
     elif callname == StormCrow.NAME:
         stormcrow_art = reddit_data.collectibles[StormCrow.NAME].stormcrow_ascii_art()
-        item.reply(stormcrow_art)
+        item_data.reply(stormcrow_art)
         stormcrow_timer.new_expiry_time(random.randint(StormCrow.TIMER_MIN, StormCrow.TIMER_MAX))
-        logger.info(f"Storm Crow NFT reply to {item_type} successful: https://www.reddit.com" + item.permalink)
-        print(f"Storm Crow NFT reply to {item_type} successful: https://www.reddit.com" + item.permalink)
+        logger.info(f"Storm Crow NFT reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
+        print(f"Storm Crow NFT reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
