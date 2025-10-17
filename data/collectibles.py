@@ -1,14 +1,15 @@
 """Colossal Dreadmaw special."""
 
 import praw
+from data.configs import MiscSettings
 
 
 class CollectibleCards:
     """
     All 'collectible' card objects.
     """
-    TIMER_MIN = 300
-    TIMER_MAX = 7200
+    TIMER_MIN = MiscSettings.NFT_REPLY_MIN_TIMER
+    TIMER_MAX = MiscSettings.NFT_REPLY_MAX_TIMER
 
     def __init__(self, reddit: praw.Reddit):
         self.reddit = reddit

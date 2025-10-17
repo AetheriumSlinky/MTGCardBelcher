@@ -41,7 +41,7 @@ class IMGSubmissionParams:
 
     Submission flair IDs: basic, pending, approved, rejected.
     """
-    MAX_IMAGE_APPROVE_TIMEDELTA = 1209600
+    MAX_IMAGE_APPROVE_TIMEDELTA = 1209600  # 2 weeks
     SCORE_THRESHOLD = 30
     RATIO_THRESHOLD = 0.74
     CARD_SUBMISSION_FLAIR_ID = 'fcc29ab2-9cec-11ef-adbd-76354d1eb977'
@@ -56,9 +56,14 @@ class MiscSettings:
     Miscellaneous bot settings.
     """
     IGNORE_CALLS_FROM = ['MTGCardBelcher', 'MTGCardFetcher']
-    WEEKLY_UNJERK = re.compile(r'.*unjerk.*thread.*', flags=re.IGNORECASE)
+    WEEKLY_UNJERK = re.compile(r'.*weekly.*unjerk.*', flags=re.IGNORECASE)
     BOTTOM_5 = re.compile(r'.*bottom.*scoring.*', flags=re.IGNORECASE)
+    SUBMISSION_EXCLUSIONS = [WEEKLY_UNJERK, BOTTOM_5]
+    COMMENTS_EXCLUSIONS = [WEEKLY_UNJERK]
     NFT_REPLIES_ON = True
+    NFT_REPLY_MIN_TIMER = 300  # 5 min
+    NFT_REPLY_MAX_TIMER = 7200  # 2 h
+    SPECIAL_TIMER = 86400  # 24 h
 
 
 # This timer is set for the Negate special flavour so that it's not called too often (once a day)
