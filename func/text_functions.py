@@ -3,9 +3,9 @@
 import random
 import re
 
+from data.configs import SpecialReplySettings
 from func.base_logger import logger
-from data.configs import MiscSettings, negate_timer
-from data.collectibles import ColossalDreadmaw, StormCrow
+from data.collectibles import ColossalDreadmaw, StormCrow, Negate
 from data.rastamon_cards import Rastamon, RastamonCard
 import data.replies as replies
 import func.scryfall_functions as sf
@@ -72,21 +72,21 @@ def set_stormcrow_waiting(reply_text: BotReplyText, cardname: str) -> BotReplyTe
     return reply_text
 
 
-def set_revel(reply_text: BotReplyText, cardname: str) -> BotReplyText:
+def set_negate_waiting(reply_text: BotReplyText, cardname: str) -> BotReplyText:
+    """
+    Sets the bot reply text elements for the special Negate reply.
+    """
+    reply_text.header = replies.ReplyHeaders.NEGATE_WAIT
+    reply_text.body_add_text(f'''[{cardname}](https://i.redd.it/ebgrvw7grwzd1.png)\n\n''')
+    reply_text.flavour = replies.ReplyFlavours.NEGATE_WAIT
+    return reply_text
+
+
+def set_revel_link_to_negate(reply_text: BotReplyText, cardname: str) -> BotReplyText:
     """
     Sets the bot reply text elements for the special Revel in Riches reply.
     """
     reply_text.body_add_text(f'''[{cardname}](https://i.redd.it/7jkequbnkrzd1.png)\n\n''')
-    return reply_text
-
-
-def set_negate(reply_text: BotReplyText, cardname: str) -> BotReplyText:
-    """
-    Sets the bot reply text elements for the special Negate reply.
-    """
-    reply_text.header = replies.ReplyHeaders.NEGATE
-    reply_text.body_add_text(f'''[{cardname}](https://i.redd.it/ebgrvw7grwzd1.png)\n\n''')
-    reply_text.flavour = replies.ReplyFlavours.NEGATE
     return reply_text
 
 
@@ -127,18 +127,31 @@ def generate_reply_text(regex_matches: list, links: list) -> str:
     reply = BotReplyText()
 
     # Some overrides for Colossal Dreadmaw
-    if ColossalDreadmaw.NAME.casefold() in [item.casefold() for item in regex_matches]:
+    if ([item.casefold() for item in regex_matches if item in ColossalDreadmaw.SPELLINGS]
+            and SpecialReplySettings.NFT_REPLIES_ON):
 
         # Bypass everything, print this particular response if Dreadmaw is mentioned even once
         choose_special = -1
         reply = set_dreadmaw_waiting(reply, ColossalDreadmaw.NAME)
+        logger.info(f"A waiting {ColossalDreadmaw.NAME} was delivered.")
 
     # Some overrides for Storm Crow
-    elif StormCrow.NAME.casefold() in [item.casefold() for item in regex_matches]:
+    elif ([item.casefold() for item in regex_matches if item in StormCrow.SPELLINGS]
+          and SpecialReplySettings.NFT_REPLIES_ON):
 
         # Bypass everything, print this particular response if Storm Crow is mentioned even once
         choose_special = -1
         reply = set_stormcrow_waiting(reply, StormCrow.NAME)
+        logger.info(f"A waiting {StormCrow.NAME} was delivered.")
+
+    # Some overrides for Negate
+    elif ([item.casefold() for item in regex_matches if item in Negate.SPELLINGS]
+          and SpecialReplySettings.NFT_REPLIES_ON):
+
+        # Bypass everything, print this particular response if Negate is mentioned even once
+        choose_special = -1
+        reply = set_negate_waiting(reply, Negate.NAME)
+        logger.info(f"A waiting {Negate.NAME} was delivered.")
 
     # Determines whether a regular reply is delivered or if one of the special modes is chosen instead
     else:
@@ -165,13 +178,7 @@ def generate_reply_text(regex_matches: list, links: list) -> str:
 
             # Some overrides for Revel in Riches
             if cardname.casefold() == "revel in riches":
-                reply = set_revel(reply, cardname)
-
-            # Some overrides for Negate copypasta
-            elif cardname.casefold() in replies.Spellings.NEGATE and negate_timer.single_timer():
-                negate_timer.new_expiry_time(MiscSettings.SPECIAL_TIMER)  # Set new expiry in a day from now
-                reply = set_negate(reply, cardname)
-                logger.info("Negate flavour used up for today. See you tomorrow!")
+                reply = set_revel_link_to_negate(reply, cardname)
 
             # Some overrides for Rastamonliveup cards
             elif rastamon_card.proper_name:

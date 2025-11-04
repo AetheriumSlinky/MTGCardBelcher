@@ -8,7 +8,17 @@ import prawcore
 
 from func.base_logger import logger
 from data.exceptions import LoginException, FatalLoginError
-from data.collectibles import ColossalDreadmaw, StormCrow
+from data.collectibles import Collectibles
+
+
+class SubredditData:
+    """
+    Subreddit streams object. Target, submissions, comments.
+    """
+    def __init__(self, target: str, reddit: praw.Reddit):
+        self.target = target
+        self.submissions = reddit.subreddit(target).stream.submissions(skip_existing=True, pause_after=1)
+        self.comments = reddit.subreddit(target).stream.comments(skip_existing=True, pause_after=1)
 
 
 class RedditData:
@@ -17,9 +27,9 @@ class RedditData:
     """
     def __init__(self, login_info, targets: list):
         self.targets = targets
-        self.reddit = None
-        self.subreddit_streams = {}
-        self.collectibles = {}
+        self.reddit: praw.Reddit
+        self.subreddit_streams: dict[str, SubredditData]
+        self.collectibles: Collectibles
         self.__try_login_loop(login_info)
 
     @staticmethod
@@ -77,17 +87,17 @@ class RedditData:
         """
         Creates a dictionary with SubredditData objects with subreddit names as keys.
         """
+        self.subreddit_streams = {}
         for subreddit in self.targets:
             self.subreddit_streams[subreddit] = SubredditData(subreddit, self.reddit)
-            logger.info(f"Stream connections for {subreddit} were initiated.")
+            logger.info(f"Stream connections for {subreddit} were initiated or restored.")
 
     @__login_error_handler
     def __collectibles(self):
         """
         Creates instances of the collectible card objects.
         """
-        self.collectibles[ColossalDreadmaw.NAME] = ColossalDreadmaw(self.reddit)
-        self.collectibles[StormCrow.NAME] = StormCrow(self.reddit)
+        self.collectibles = Collectibles(self.reddit)
 
     def __try_login_loop(self, login_info):
         """
@@ -113,13 +123,3 @@ class RedditData:
         if attempts >= 20:
             logger.critical(f"There were {attempts} failed login attempts. Stopped trying to log in. Goodbye.")
             raise FatalLoginError("Too many failed login attemps. Exiting program. Goodbye.")
-
-
-class SubredditData:
-    """
-    Subreddit streams object. Target, submissions, comments.
-    """
-    def __init__(self, target: str, reddit: praw.Reddit):
-        self.target = target
-        self.submissions = reddit.subreddit(target).stream.submissions(skip_existing=True, pause_after=1)
-        self.comments = reddit.subreddit(target).stream.comments(skip_existing=True, pause_after=1)

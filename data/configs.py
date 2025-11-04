@@ -1,7 +1,7 @@
 """Contains login info and reply target subreddits."""
 
 import re
-from func.timer import RefreshTimer
+
 
 class BotInfo:
     """
@@ -51,6 +51,15 @@ class IMGSubmissionParams:
     META_FEEDBACK_OTHER_FLAIR_ID = '997724da-2e80-11ef-996d-26eb2b2aa996'
 
 
+class SpecialReplySettings:
+    """
+    NFT collectible settings.
+    """
+    NFT_REPLIES_ON = True
+    REPLY_MIN_TIMER = 600  # 10 min
+    REPLY_MAX_TIMER = 7200  # 2 h
+
+
 class MiscSettings:
     """
     Miscellaneous bot settings.
@@ -60,20 +69,3 @@ class MiscSettings:
     BOTTOM_5 = re.compile(r'.*bottom.*scoring.*', flags=re.IGNORECASE)
     SUBMISSION_EXCLUSIONS = [WEEKLY_UNJERK, BOTTOM_5]
     COMMENTS_EXCLUSIONS = [WEEKLY_UNJERK]
-    NFT_REPLIES_ON = True
-    NFT_REPLY_MIN_TIMER = 300  # 5 min
-    NFT_REPLY_MAX_TIMER = 7200  # 2 h
-    SPECIAL_TIMER = 86400  # 24 h
-
-
-# This timer is set for the Negate special flavour so that it's not called too often (once a day)
-# Starts at 0 so that the reply is available immediately after each bot restart
-negate_timer = RefreshTimer(0)
-
-# This time is set for the special Colossal Dreasmaw text so that it's not called too often (variable cooldown)
-# Starts at 0 so that the reply is available immediately after each bot restart
-dreadmaw_timer = RefreshTimer(0)
-
-# This timer is set for the special Storm Crow text so that it's not called too often (variable cooldown)
-# Starts at 0 so that the reply is available immediately after each bot restart
-stormcrow_timer = RefreshTimer(0)
