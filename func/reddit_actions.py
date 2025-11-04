@@ -221,7 +221,7 @@ def submission_action(reddit_data: RedditData, target_subreddit, image_links: li
                 item_type = "submission"
                 submission_regex_matches = get_regex_bracket_matches(submission.selftext)
                 low_matches = [item.casefold() for item in submission_regex_matches]
-                if comment_requires_action(submission, submission_regex_matches):
+                if submission_requires_action(submission, submission_regex_matches):
                     collectible_match = reddit_data.collectibles.find_matching_collectible(low_matches)
                     if SpecialReplySettings.NFT_REPLIES_ON and collectible_match.timer.it_is_time():
                         special_reply(item_type, reddit_data, submission, collectible_match.name)
