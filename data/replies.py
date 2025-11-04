@@ -6,9 +6,9 @@ class ReplyHeaders:
     """Header text strings."""
 
     RASTAMON = "Rastamonliveup has delivered the cards you're looking for:\n\n"
-    NEGATE = "Desolatormagic is fuming at you and your stupid cards:\n\n"
     DREADMAW_WAIT = "Colossal Dreadmaw is nowhere to be _seen_.\n\n"
     STORMCROW_WAIT = "The sky is clear! Not even a single cloud!\n\n"
+    NEGATE_WAIT = "They resolve:\n\n"
 
     @staticmethod
     def random_special_header():
@@ -50,37 +50,13 @@ class ReplyHeaders:
 
 
 class ReplyFlavours:
-    """Flavour texts of certain special card calls."""
-
+    """
+    Flavour texts of certain special card calls.
+    """
     GYANDU = "_Tell the children the truth_\n\n"
     DREADMAW_WAIT = "_You feel the ground quake. Run!_\n\n"
     STORMCROW_WAIT = "_It tells you that the worst is coming. Do you listen?_\n\n"
-    NEGATE = (
-        "_Before this gets deleted by reddit admins, this asshole took it completely out of context. "
-        "First of all, the idiot thinks it was a marionette deck. It wasn't. That card's not even in the deck. "
-        "He was running counterspell draw, this was approximately turn 25, "
-        "every single creature and spell I cast was countered or removed up until that point "
-        "and this dumbass who copied his deck from MTG Salvation or Goldfish used one of his last copies of negate "
-        "to counter a Revel in Riches when he had 0 creatures on the field and I had 0 treasures in play, "
-        "thus the 'this spell does literally nothing' and he should have let it resolve. "
-        "I love it when people copy a deck and have no idea how to run it or play MTG. "
-        "I was just throwing it out because I had 5 mana and it was the only card left in my hand "
-        "and the game was already over anyway. "
-        "So on the way out I let him know what an idiot he was for countering a spell "
-        "that does nothing in the current board state. "
-        "NOBODY wants to watch a recording of a game where I cast something "
-        "and he counters it or removes it x30 turns. That's idiotic. "
-        "I should have left the game the second I saw what he was running. "
-        "This was the 5th attempt at getting a recording of something resembling watchable MTG gameplay "
-        "and 5 people in a row were playing Karn draw control loop "
-        "or free cast torrential graveyard resurrection control or approach control loop. "
-        "So yeah, I was pissed and he was an asshole for playing this. "
-        "He's one of those idiots who doesn't care about the other players one bit, it's all about winning. "
-        "So running 35 control spells seems reasonable because NOTHING matters but winning. "
-        "Thanks for not showing the board state with library counts or the full log, asshole. "
-        "Enjoy your temporary ban from reddit._\n\n"
-    )
-
+    NEGATE_WAIT = "_You must draw cards in order to counter Negate!_\n\n"
 
 class ReplyLinklessTexts:
     """Full reply texts of linkless specials."""
@@ -102,9 +78,3 @@ class ReplyLinklessTexts:
 
         specials = [eldrazi, orangutan, meandering]
         return random.choice(specials)
-
-
-class Spellings:
-    """Spellings of certain special card calls."""
-
-    NEGATE = ["negate", "naegate", "negaete", "naegaete", "nægate", "negæte", "nægæte"]

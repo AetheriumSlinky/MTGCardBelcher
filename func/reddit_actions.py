@@ -2,7 +2,6 @@
 
 import time
 import re
-import random
 
 import praw
 import praw.exceptions
@@ -11,8 +10,7 @@ import prawcore
 from func.base_logger import logger
 from func.reddit_connection import RedditData
 from data.exceptions import MainOperationException
-from data.configs import IMGSubmissionParams, Subreddits, MiscSettings, dreadmaw_timer, stormcrow_timer
-from data.collectibles import ColossalDreadmaw, StormCrow
+from data.configs import IMGSubmissionParams, Subreddits, MiscSettings, SpecialReplySettings
 from func.text_functions import get_regex_bracket_matches, generate_reply_text
 
 
@@ -197,17 +195,9 @@ def comment_action(reddit_data: RedditData, target_subreddit: str, image_links: 
                 comment_regex_matches = get_regex_bracket_matches(comment.body)
                 low_matches = [item.casefold() for item in comment_regex_matches]
                 if comment_requires_action(comment, comment_regex_matches):
-
-                    if (MiscSettings.NFT_REPLIES_ON
-                            and ColossalDreadmaw.NAME.casefold() in low_matches
-                            and dreadmaw_timer.single_timer()):
-                        special_reply(item_type, reddit_data, comment, ColossalDreadmaw.NAME)
-
-                    elif (MiscSettings.NFT_REPLIES_ON
-                          and StormCrow.NAME.casefold() in low_matches
-                          and stormcrow_timer.single_timer()):
-                        special_reply(item_type, reddit_data, comment, StormCrow.NAME)
-
+                    collectible_match = reddit_data.collectibles.find_matching_collectible(low_matches)
+                    if SpecialReplySettings.NFT_REPLIES_ON and collectible_match.timer.it_is_time():
+                        special_reply(item_type, reddit_data, comment, collectible_match.name)
                     else:
                         item_reply(item_type, comment, comment_regex_matches, image_links)
             except AttributeError as e:
@@ -231,25 +221,15 @@ def submission_action(reddit_data: RedditData, target_subreddit, image_links: li
                 item_type = "submission"
                 submission_regex_matches = get_regex_bracket_matches(submission.selftext)
                 low_matches = [item.casefold() for item in submission_regex_matches]
-                if submission_requires_action(submission, submission_regex_matches):
-
-                    if (MiscSettings.NFT_REPLIES_ON
-                            and ColossalDreadmaw.NAME.casefold() in low_matches
-                            and dreadmaw_timer.single_timer()):
-                        special_reply(item_type, reddit_data, submission, ColossalDreadmaw.NAME)
-
-                    elif (MiscSettings.NFT_REPLIES_ON
-                          and StormCrow.NAME.casefold() in low_matches
-                          and stormcrow_timer.single_timer()):
-                        special_reply(item_type, reddit_data, submission, StormCrow.NAME)
-
+                if comment_requires_action(submission, submission_regex_matches):
+                    collectible_match = reddit_data.collectibles.find_matching_collectible(low_matches)
+                    if SpecialReplySettings.NFT_REPLIES_ON and collectible_match.timer.it_is_time():
+                        special_reply(item_type, reddit_data, submission, collectible_match.name)
                     else:
                         item_reply(item_type, submission, submission_regex_matches, image_links)
-
             except AttributeError as e:
                 logger.warning(f"An AttributeError was thrown most likely due to a deleted comment. Full error: {e}")
                 break
-
         else:
             break
 
@@ -279,7 +259,7 @@ def comment_requires_action(comment_data: praw.Reddit.comment, regex_matches: li
         return False
 
     elif any(comment_parent_exclusions):  # Is on exclusion list
-        logger.info("Submission of the comment on exclusion list. " + comment_data.id)
+        logger.info("Parent submission of the comment on exclusion list. " + comment_data.id)
         return False
 
     else:  # Eligible for reply
@@ -351,16 +331,7 @@ def special_reply(item_type: str, reddit_data: RedditData, item_data, callname: 
     :param item_data: A comment or a submission.
     :param callname: Name of the card that was called.
     """
-    if callname == ColossalDreadmaw.NAME:
-        dreadmaw_art = reddit_data.collectibles[ColossalDreadmaw.NAME].dreadmaw_ascii_art()
-        item_data.reply(dreadmaw_art)
-        dreadmaw_timer.new_expiry_time(random.randint(ColossalDreadmaw.TIMER_MIN, ColossalDreadmaw.TIMER_MAX))
-        logger.info(f"Colossal Dreadmaw NFT reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
-        print(f"Colossal Dreadmaw NFT reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
-
-    elif callname == StormCrow.NAME:
-        stormcrow_art = reddit_data.collectibles[StormCrow.NAME].stormcrow_ascii_art()
-        item_data.reply(stormcrow_art)
-        stormcrow_timer.new_expiry_time(random.randint(StormCrow.TIMER_MIN, StormCrow.TIMER_MAX))
-        logger.info(f"Storm Crow NFT reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
-        print(f"Storm Crow NFT reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
+    art = reddit_data.collectibles[callname].art()
+    item_data.reply(art)
+    logger.info(f"{callname} NFT reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
+    print(f"{callname} NFT reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
