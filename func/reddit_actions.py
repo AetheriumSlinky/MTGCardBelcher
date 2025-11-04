@@ -331,7 +331,7 @@ def special_reply(item_type: str, reddit_data: RedditData, item_data, callname: 
     :param item_data: A comment or a submission.
     :param callname: Name of the card that was called.
     """
-    art = reddit_data.collectibles[callname].art()
+    art = reddit_data.collectibles.objects[callname].art()
     item_data.reply(art)
     logger.info(f"{callname} NFT reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
     print(f"{callname} NFT reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)

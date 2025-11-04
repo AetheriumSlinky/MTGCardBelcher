@@ -8,7 +8,7 @@ class ReplyHeaders:
     RASTAMON = "Rastamonliveup has delivered the cards you're looking for:\n\n"
     DREADMAW_WAIT = "Colossal Dreadmaw is nowhere to be _seen_.\n\n"
     STORMCROW_WAIT = "The sky is clear! Not even a single cloud!\n\n"
-    NEGATE_WAIT = "They resolve:\n\n"
+    NEGATE_WAIT = "Oh no! It resolves:\n\n"
 
     @staticmethod
     def random_special_header():
@@ -56,7 +56,7 @@ class ReplyFlavours:
     GYANDU = "_Tell the children the truth_\n\n"
     DREADMAW_WAIT = "_You feel the ground quake. Run!_\n\n"
     STORMCROW_WAIT = "_It tells you that the worst is coming. Do you listen?_\n\n"
-    NEGATE_WAIT = "_You must draw cards in order to counter Negate!_\n\n"
+    NEGATE_WAIT = "_You must draw more cards in order to find a Negate!_\n\n"
 
 class ReplyLinklessTexts:
     """Full reply texts of linkless specials."""

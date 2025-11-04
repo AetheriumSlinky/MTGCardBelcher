@@ -244,6 +244,7 @@ class Negate(CollectiblesTemplate):
                 "So running 35 control spells seems reasonable because NOTHING matters but winning. "
                 "Thanks for not showing the board state with library counts or the full log, asshole. "
                 "Enjoy your temporary ban from reddit._\n\n"
+                "*********\n\n"
                 f"*^(You are No. {count_str} to counter Negate!)*\n\n"
 )
         return art
@@ -258,7 +259,7 @@ class Collectibles:
         self._storm_crow = StormCrow(reddit)
         self._negate = Negate(reddit)
         self._empty = CollectiblesTemplate(None)  # The collectible reply action needs a dummy timer
-        self.collectibles = {
+        self.objects = {
             "Colossal Dreadmaw": self._colossal_dreadmaw,
             "Storm Crow": self._storm_crow,
             "Negate": self._negate,
@@ -272,7 +273,7 @@ class Collectibles:
         :return: Collectible object if a match is found, otherwise False.
         """
         for match in regex_matches:
-            for name, collectible in self.collectibles.items():
+            for name, collectible in self.objects.items():
                 if match in collectible.spellings:
-                    return self.collectibles[name]
-        return self.collectibles["Empty"]
+                    return self.objects[name]
+        return self.objects["Empty"]
