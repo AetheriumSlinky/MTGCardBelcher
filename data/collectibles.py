@@ -245,7 +245,7 @@ class Negate(CollectiblesTemplate):
                 "Thanks for not showing the board state with library counts or the full log, asshole. "
                 "Enjoy your temporary ban from reddit._\n\n"
                 "*********\n\n"
-                f"*^(You are No. {count_str} to counter Negate!)*\n\n"
+                f"*^(You are No. {count_str} to counter Revel in Riches!)*\n\n"
 )
         return art
 
