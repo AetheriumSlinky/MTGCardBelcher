@@ -3,8 +3,8 @@ import random
 
 import praw
 
-from func.timer import RefreshTimer
-from data.configs import SpecialReplySettings
+from src.func.timer import RefreshTimer
+from src.configs import SpecialReplySettings
 
 
 class CollectiblesTemplate:

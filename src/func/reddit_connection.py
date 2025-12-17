@@ -6,9 +6,9 @@ import praw
 import praw.exceptions
 import prawcore
 
-from func.base_logger import logger
-from data.exceptions import LoginException, FatalLoginError
-from data.collectibles import Collectibles
+from src.func.base_logger import logger
+from src.data.exceptions import LoginException, FatalLoginError
+from src.data.collectibles import Collectibles
 
 
 class SubredditData:
@@ -80,7 +80,7 @@ class RedditData:
             client_secret=info[4])
 
         self.reddit = reddit_instance
-        logger.info("Reddit login successful.")
+        logger.confirmation("Reddit login successful.")
 
     @__login_error_handler
     def __open_streams(self):

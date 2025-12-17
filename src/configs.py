@@ -1,7 +1,7 @@
 """Contains login info and reply target subreddits."""
 
 import re
-
+from pathlib import Path
 
 class BotInfo:
     """
@@ -18,7 +18,18 @@ class BotInfo:
     """
     USERNAME = 'MTGCardBelcher'
     REDDIT_OAUTH = "oauth.txt"
-    SCRYFALL_USER_AGENT_HEADER = {'user-agent': 'MTGCardBelcher/1.2.0', "accept": "*/*"}
+    SCRYFALL_USER_AGENT_HEADER = {'user-agent': 'MTGCardBelcher/1.3.0', "accept": "*/*"}
+
+
+class GeneralSettings:
+    """
+    Settings for bot's general functionality.
+    """
+    PROJECT_ROOT_PATH = Path(__file__).parent.parent  # config => src => root
+
+    # Logging module levels
+    LOGS_LEVEL = 20  # Level 20 corresponds to INFO, 21 is less verbose CONFIRMATION
+    CONSOLE_MESSAGE_LEVEL = 21  # Level 20 corresponds to INFO, 21 is less verbose CONFIRMATION
 
 
 class Subreddits:
@@ -44,11 +55,18 @@ class IMGSubmissionParams:
     MAX_IMAGE_APPROVE_TIMEDELTA = 1209600  # 2 weeks
     SCORE_THRESHOLD = 30
     RATIO_THRESHOLD = 0.74
-    CARD_SUBMISSION_FLAIR_ID = 'fcc29ab2-9cec-11ef-adbd-76354d1eb977'
-    PENDING_FLAIR_ID = '337aaa10-9cf5-11ef-b08d-1e57adeb694e'
-    APPROVED_FLAIR_ID = '882ae2ac-2e80-11ef-bf2d-f2bf21373915'
-    REJECTED_FLAIR_ID = '50a490ba-9cf5-11ef-834b-f6ac6a413fab'
-    META_FEEDBACK_OTHER_FLAIR_ID = '997724da-2e80-11ef-996d-26eb2b2aa996'
+#    CARD_SUBMISSION_FLAIR_ID = 'fcc29ab2-9cec-11ef-adbd-76354d1eb977'
+#    PENDING_FLAIR_ID = '337aaa10-9cf5-11ef-b08d-1e57adeb694e'
+#    APPROVED_FLAIR_ID = '882ae2ac-2e80-11ef-bf2d-f2bf21373915'
+#    REJECTED_FLAIR_ID = '50a490ba-9cf5-11ef-834b-f6ac6a413fab'
+#    META_FEEDBACK_OTHER_FLAIR_ID = '997724da-2e80-11ef-996d-26eb2b2aa996'
+    FLAIR_IDS = {
+        "new": 'fcc29ab2-9cec-11ef-adbd-76354d1eb977',
+        "pending": '337aaa10-9cf5-11ef-b08d-1e57adeb694e',
+        "approved": '882ae2ac-2e80-11ef-bf2d-f2bf21373915',
+        "rejected": '50a490ba-9cf5-11ef-834b-f6ac6a413fab',
+        "other": '997724da-2e80-11ef-996d-26eb2b2aa996',
+    }
 
 
 class SpecialReplySettings:
@@ -60,7 +78,7 @@ class SpecialReplySettings:
     REPLY_MAX_TIMER = 7200  # 2 h
 
 
-class MiscSettings:
+class ReplySettings:
     """
     Miscellaneous bot settings.
     """

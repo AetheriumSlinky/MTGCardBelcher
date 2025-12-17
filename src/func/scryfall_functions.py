@@ -2,8 +2,8 @@
 
 import requests
 
-from func.base_logger import logger
-from data.configs import BotInfo
+from src.func.base_logger import logger
+from src.configs import BotInfo
 
 
 def get_scryfall_image(cardname: str) -> str:
@@ -26,7 +26,7 @@ def get_scryfall_image(cardname: str) -> str:
     # Lazy Except because Scryfall isn't that important, just skip this if it doesn't work
     except Exception as scryfall_e:
         image_url = ""
-        logger.warning("Something went wrong with Scryfall. Ignoring Scryfall: " + str(scryfall_e))
+        logger.info("Something went wrong with Scryfall. Ignoring Scryfall: " + str(scryfall_e))
 
     return image_url
 
@@ -42,7 +42,7 @@ def get_scryfall_flavour() -> str:
         random_flavour = random_flavour_card.json()['flavor_text']
     # Lazy except because Scryfall isn't that important, just skip it if it doesn't work
     except Exception as scryfall_e:
-        logger.warning("Something went wrong with Scryfall. Ignoring Scryfall: " + str(scryfall_e))
+        logger.info("Something went wrong with Scryfall. Ignoring Scryfall: " + str(scryfall_e))
         random_flavour = "Sometimes, rarely, Scryfall is not there and the world is out of flavour."
 
     return random_flavour

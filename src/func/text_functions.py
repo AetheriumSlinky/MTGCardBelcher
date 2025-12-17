@@ -3,12 +3,12 @@
 import random
 import re
 
-from data.configs import SpecialReplySettings
-from func.base_logger import logger
-from data.collectibles import ColossalDreadmaw, StormCrow, Negate
-from data.rastamon_cards import Rastamon, RastamonCard
-import data.replies as replies
-import func.scryfall_functions as sf
+from src.configs import SpecialReplySettings
+from src.func.base_logger import logger
+from src.data.collectibles import ColossalDreadmaw, StormCrow, Negate
+from src.data.rastamon_cards import Rastamon, RastamonCard
+from src.data import replies
+import src.func.scryfall_functions as sf
 
 
 class BotReplyText:
@@ -159,7 +159,7 @@ def generate_reply_text(regex_matches: list, links: list) -> str:
 
     if choose_special == 0:  # Text-only replies, no links
         reply.body = replies.ReplyLinklessTexts.random_linkless_reply()
-        logger.warning("Easter egg with no image links delivered. Please investigate reception.")
+        logger.confirmation("Easter egg with no image links delivered. Please investigate reception. Link below.")
 
     elif choose_special == 1:  # Special delivery line, yes links
         reply.header = replies.ReplyHeaders.random_special_header()
@@ -183,7 +183,7 @@ def generate_reply_text(regex_matches: list, links: list) -> str:
             # Some overrides for Rastamonliveup cards
             elif rastamon_card.proper_name:
                 reply = set_rastamon(reply, rastamon_card)
-                logger.info("Tell the children the truth.")
+                logger.info("Tell the children the truth. (A Rastamon reply was delivered.)")
 
             # If a real cardname matches the regex make a Scryfall link
             elif scryfall_image:
