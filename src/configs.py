@@ -27,7 +27,7 @@ class GeneralSettings:
     """
     PROJECT_ROOT_PATH = Path(__file__).parent.parent  # config => src => root
 
-    # Logging module levels
+    # Logging module levels, recommended to either leave as-is or go for 20 on LOGS and 30 on CONSOLE
     LOGS_LEVEL = 20  # Level 20 corresponds to INFO, 21 is less verbose CONFIRMATION
     CONSOLE_MESSAGE_LEVEL = 21  # Level 20 corresponds to INFO, 21 is less verbose CONFIRMATION
 
@@ -55,11 +55,6 @@ class IMGSubmissionParams:
     MAX_IMAGE_APPROVE_TIMEDELTA = 1209600  # 2 weeks
     SCORE_THRESHOLD = 30
     RATIO_THRESHOLD = 0.74
-#    CARD_SUBMISSION_FLAIR_ID = 'fcc29ab2-9cec-11ef-adbd-76354d1eb977'
-#    PENDING_FLAIR_ID = '337aaa10-9cf5-11ef-b08d-1e57adeb694e'
-#    APPROVED_FLAIR_ID = '882ae2ac-2e80-11ef-bf2d-f2bf21373915'
-#    REJECTED_FLAIR_ID = '50a490ba-9cf5-11ef-834b-f6ac6a413fab'
-#    META_FEEDBACK_OTHER_FLAIR_ID = '997724da-2e80-11ef-996d-26eb2b2aa996'
     FLAIR_IDS = {
         "new": 'fcc29ab2-9cec-11ef-adbd-76354d1eb977',
         "pending": '337aaa10-9cf5-11ef-b08d-1e57adeb694e',
