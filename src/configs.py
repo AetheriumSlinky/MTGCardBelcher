@@ -82,3 +82,5 @@ class ReplySettings:
     BOTTOM_5 = re.compile(r'.*bottom.*scoring.*', flags=re.IGNORECASE)
     SUBMISSION_EXCLUSIONS = [WEEKLY_UNJERK, BOTTOM_5]
     COMMENTS_EXCLUSIONS = [WEEKLY_UNJERK]
+    REPLY_MAX_LENGTH = 2400
+    REPLY_MAX_COUNT = 8

@@ -126,7 +126,7 @@ class ColossalDreadmaw(CollectiblesTemplate):
     | #{count_str} C              \\  / 6 /|
     | M19•EN  ==>Jesper Ejsing     |
     \\______________________________/\n\n
-*^(You are No. {count_str}! This content is best viewed by opening this reply directly.)*\n\n''')
+*^(You are No. {count_str} to encounter Colossal Dreadmaw!\nThis content is best viewed by opening this reply directly.)*\n\n''')
         return art
 
 
@@ -184,7 +184,7 @@ class StormCrow(CollectiblesTemplate):
     |                      \\  / 2 /|
     | ==>John Matson      #{count_str}    |
     \\______________________________/\n\n
-*^(You are No. {count_str}! This content is best viewed by opening this reply directly.)*\n\n""")
+*^(You are No. {count_str} to see Storm Crow fly!\nThis content is best viewed by opening this reply directly.)*\n\n""")
         return art
 
 
