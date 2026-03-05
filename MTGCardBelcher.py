@@ -30,7 +30,7 @@ def main():
     # Loop
     while True:
         try:
-            if image_refresh.it_is_time():  # Has 30 minutes passed?
+            if image_refresh.is_it_time():  # Has 30 minutes passed?
                 image_submission_links = r.sub_actions(connection, Subreddits.SUBMISSION_SUBREDDITS)
 
             for sub in Subreddits.CALL_SUBREDDITS:
