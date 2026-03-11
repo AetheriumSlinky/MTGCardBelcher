@@ -7,18 +7,18 @@ import praw
 import praw.exceptions
 import prawcore
 
-from func.base_logger import logger
-from func.reddit_connection import RedditData
-from data.exceptions import MainOperationException
-from data.configs import IMGSubmissionParams, Subreddits, MiscSettings, SpecialReplySettings
-from func.text_functions import get_regex_bracket_matches, generate_reply_text
+from src.func.base_logger import logger
+from src.func.reddit_connection import RedditData
+from src.data.exceptions import MainOperationException
+from src.configs import IMGSubmissionParams, Subreddits, ReplySettings, SpecialReplySettings
+from src.func.text_functions import get_regex_bracket_matches, generate_reply_text
 
 
 class ImageSubmission:
     """
     Image submission params.
     """
-    def __init__(self, image_submission: praw.Reddit.submission):
+    def __init__(self, image_submission: praw.reddit.Submission):
         self.flair_id = image_submission.link_flair_template_id
         self.created = image_submission.created_utc
         self.score = image_submission.score
@@ -37,23 +37,23 @@ def main_error_handler(func):
         try:
             return func(*args, **kwargs)
         except prawcore.ServerError as server_err:
-            logger.warning("Server error, retry in 5 minutes. Error code: " + str(server_err))
+            logger.warning("Server error, resume in 5 minutes. Error code: " + str(server_err))
             time.sleep(300)
             raise MainOperationException
         except prawcore.RequestException as request_exc:
-            logger.warning("Incomplete HTTP request, retry in 10 seconds. Error code: " + str(request_exc))
-            time.sleep(10)
+            logger.warning("Incomplete HTTP request, resume in 5 minutes. Error code: " + str(request_exc))
+            time.sleep(300)
             raise MainOperationException
         except prawcore.ResponseException as response_exc:
-            logger.warning("HTTP request response error, retry in 30 seconds. Error code: " + str(response_exc))
+            logger.warning("HTTP request response error, resume in 30 seconds. Error code: " + str(response_exc))
             time.sleep(30)
             raise MainOperationException
         except praw.exceptions.RedditAPIException as rapi_e:
-            logger.warning("RedditAPIException, retry in 10 seconds. Error code: " + str(rapi_e))
+            logger.warning("RedditAPIException, resume in 10 seconds. Error code: " + str(rapi_e))
             time.sleep(10)
             raise MainOperationException
         except praw.exceptions.APIException as api_e:
-            logger.warning("APIException, retry in 10 seconds. Error code: " + str(api_e))
+            logger.warning("APIException, resume in 10 seconds. Error code: " + str(api_e))
             time.sleep(10)
             raise MainOperationException
     return wrapper
@@ -82,24 +82,23 @@ def sub_actions(reddit_data: RedditData, source_subreddits: list) -> list:
                 img_sub = ImageSubmission(image_submission)
 
                 if should_pending(img_sub):
-                    update_flair(image_submission, IMGSubmissionParams.PENDING_FLAIR_ID)
-                    img_sub.flair_id = IMGSubmissionParams.PENDING_FLAIR_ID
+                    update_flair(image_submission, IMGSubmissionParams.FLAIR_IDS["pending"])
+                    img_sub.flair_id = IMGSubmissionParams.FLAIR_IDS["pending"]
                     pending_count += 1
 
                 if should_approve(img_sub):
-                    update_flair(image_submission, IMGSubmissionParams.APPROVED_FLAIR_ID)
-                    img_sub.flair_id = IMGSubmissionParams.APPROVED_FLAIR_ID
+                    update_flair(image_submission, IMGSubmissionParams.FLAIR_IDS["approved"])
+                    img_sub.flair_id = IMGSubmissionParams.FLAIR_IDS["approved"]
                     approve_count += 1
 
                 if should_reject(img_sub):
-                    update_flair(image_submission, IMGSubmissionParams.REJECTED_FLAIR_ID)
-                    img_sub.flair_id = IMGSubmissionParams.REJECTED_FLAIR_ID
+                    update_flair(image_submission, IMGSubmissionParams.FLAIR_IDS["rejected"])
+                    img_sub.flair_id = IMGSubmissionParams.FLAIR_IDS["rejected"]
                     reject_count += 1
 
             except AttributeError:
-                update_flair(image_submission, IMGSubmissionParams.META_FEEDBACK_OTHER_FLAIR_ID)
-                logger.info(f"Something for https://reddit.com{image_submission.permalink} is missing. Investigate.")
-                print(f"Something for https://reddit.com{image_submission.permalink} is missing. Investigate.")
+                update_flair(image_submission, IMGSubmissionParams.FLAIR_IDS["other"])
+                logger.confirmation(f"Something for https://reddit.com{image_submission.permalink} is missing. Investigate.")
 
             # Check if submission has the correct flair
             if is_valid_image_submission(image_submission, source):
@@ -112,7 +111,7 @@ def sub_actions(reddit_data: RedditData, source_subreddits: list) -> list:
     return image_candidate_urls
 
 
-def is_valid_image_submission(image_submission: praw.Reddit.submission, source_subreddit: str) -> bool:
+def is_valid_image_submission(image_submission: praw.reddit.Submission, source_subreddit: str) -> bool:
     """
     Checks for image submission eligibility.
     :param image_submission: An image submission candidate.
@@ -121,7 +120,7 @@ def is_valid_image_submission(image_submission: praw.Reddit.submission, source_s
     """
     if ((source_subreddit not in image_submission.url)
             and (re.search('(i.redd.it|i.imgur.com)', image_submission.url))
-            and (image_submission.link_flair_template_id == IMGSubmissionParams.APPROVED_FLAIR_ID)):
+            and (image_submission.link_flair_template_id == IMGSubmissionParams.FLAIR_IDS["approved"])):
         return True
     return False
 
@@ -132,10 +131,9 @@ def should_pending(img_sub: ImageSubmission) -> bool:
     :param img_sub: An ImageSubmission object with Reddit submission's attributes.
     :return: True if flair should be changed, otherwise False.
     """
-    if (img_sub.flair_id == IMGSubmissionParams.CARD_SUBMISSION_FLAIR_ID
+    if (img_sub.flair_id == IMGSubmissionParams.FLAIR_IDS["new"]
         and img_sub.approved):
         logger.info(f"The flair for https://reddit.com{img_sub.permalink} should be updated to pending status.")
-        print(f"The flair for https://reddit.com{img_sub.permalink} should be updated to pending status.")
         return True
     return False
 
@@ -146,11 +144,10 @@ def should_approve(img_sub: ImageSubmission) -> bool:
     :param img_sub: An ImageSubmission object with Reddit submission's attributes.
     :return: True if flair should be changed, otherwise False.
     """
-    if (img_sub.flair_id == IMGSubmissionParams.PENDING_FLAIR_ID
+    if (img_sub.flair_id == IMGSubmissionParams.FLAIR_IDS["pending"]
         and img_sub.score >= IMGSubmissionParams.SCORE_THRESHOLD
         and img_sub.ratio >= IMGSubmissionParams.RATIO_THRESHOLD):
         logger.info(f"The https://reddit.com{img_sub.permalink} submission should be approved.")
-        print(f"The https://reddit.com{img_sub.permalink} submission should be approved.")
         return True
     return False
 
@@ -161,23 +158,21 @@ def should_reject(img_sub: ImageSubmission) -> bool:
     :param img_sub: An ImageSubmission object with Reddit submission's attributes.
     :return: True if flair should be changed, otherwise False.
     """
-    if (img_sub.flair_id == IMGSubmissionParams.PENDING_FLAIR_ID
+    if (img_sub.flair_id == IMGSubmissionParams.FLAIR_IDS["pending"]
         and int(time.time()) - img_sub.created > IMGSubmissionParams.MAX_IMAGE_APPROVE_TIMEDELTA):
         logger.info(f"The https://reddit.com{img_sub.permalink} submission should be rejected.")
-        print(f"The https://reddit.com{img_sub.permalink} submission should be rejected.")
         return True
     return False
 
 
-def update_flair(image_submission: praw.Reddit.submission, new_flair_id: str):
+def update_flair(image_submission: praw.reddit.Submission, new_flair_id: str):
     """
     Updates the image submission's flair on Reddit.
     :param image_submission: Image submission.
     :param new_flair_id:
     """
     image_submission.mod.flair(flair_template_id=new_flair_id)
-    logger.info(f"Flair status for {image_submission.id} updated.")
-    print(f"Flair status for {image_submission.id} updated.")
+    logger.confirmation(f"Flair status for https://reddit.com{image_submission.permalink} updated.")
 
 
 @main_error_handler
@@ -196,7 +191,7 @@ def comment_action(reddit_data: RedditData, target_subreddit: str, image_links: 
                 low_matches = [item.casefold() for item in comment_regex_matches]
                 if comment_requires_action(comment, comment_regex_matches):
                     collectible_match = reddit_data.collectibles.find_matching_collectible(low_matches)
-                    if SpecialReplySettings.NFT_REPLIES_ON and collectible_match.timer.it_is_time():
+                    if SpecialReplySettings.NFT_REPLIES_ON and collectible_match.timer.is_it_time():
                         special_reply(item_type, reddit_data, comment, collectible_match.name)
                     else:
                         item_reply(item_type, comment, comment_regex_matches, image_links)
@@ -221,9 +216,9 @@ def submission_action(reddit_data: RedditData, target_subreddit, image_links: li
                 item_type = "submission"
                 submission_regex_matches = get_regex_bracket_matches(submission.selftext)
                 low_matches = [item.casefold() for item in submission_regex_matches]
-                if comment_requires_action(submission, submission_regex_matches):
+                if submission_requires_action(submission, submission_regex_matches):
                     collectible_match = reddit_data.collectibles.find_matching_collectible(low_matches)
-                    if SpecialReplySettings.NFT_REPLIES_ON and collectible_match.timer.it_is_time():
+                    if SpecialReplySettings.NFT_REPLIES_ON and collectible_match.timer.is_it_time():
                         special_reply(item_type, reddit_data, submission, collectible_match.name)
                     else:
                         item_reply(item_type, submission, submission_regex_matches, image_links)
@@ -234,7 +229,7 @@ def submission_action(reddit_data: RedditData, target_subreddit, image_links: li
             break
 
 
-def comment_requires_action(comment_data: praw.Reddit.comment, regex_matches: list) -> bool:
+def comment_requires_action(comment_data: praw.reddit.Comment, regex_matches: list) -> bool:
     """
     Checks whether a comment requires action, is by the bot itself, has no matches, or is excluded.
     :param comment_data: Reddit's praw comment API data.
@@ -242,7 +237,7 @@ def comment_requires_action(comment_data: praw.Reddit.comment, regex_matches: li
     :return: True if comment requires action.
     """
     comment_parent_exclusions = [
-        title.search(string=comment_data.submission.title) for title in MiscSettings.COMMENTS_EXCLUSIONS
+        title.search(string=comment_data.submission.title) for title in ReplySettings.COMMENTS_EXCLUSIONS
     ]
 
     if time.time() - comment_data.created_utc > 10 * 60:
@@ -250,8 +245,8 @@ def comment_requires_action(comment_data: praw.Reddit.comment, regex_matches: li
                     + comment_data.id)
         return False
 
-    elif comment_data.author.name in MiscSettings.IGNORE_CALLS_FROM:  # Bots
-        logger.info("Bot will not reply to itself or to the real CardFetcher (comment). " + comment_data.id)
+    elif comment_data.author.name in ReplySettings.IGNORE_CALLS_FROM:  # Bots
+        logger.debug("Bot will not reply to itself or to the real CardFetcher (comment). " + comment_data.id)
         return False
 
     elif not regex_matches:  # No regex matches
@@ -270,7 +265,7 @@ def comment_requires_action(comment_data: praw.Reddit.comment, regex_matches: li
         return True
 
 
-def submission_requires_action(submission_data: praw.Reddit.submission, regex_matches: list) -> bool:
+def submission_requires_action(submission_data: praw.reddit.Submission, regex_matches: list) -> bool:
     """
     Checks whether a submission requires action, is by the bot itself, has no matches, or is excluded.
     :param submission_data: Reddit's praw submission API data.
@@ -279,7 +274,7 @@ def submission_requires_action(submission_data: praw.Reddit.submission, regex_ma
     """
 
     submission_exclusions = [
-        title.search(string=submission_data.title) for title in MiscSettings.SUBMISSION_EXCLUSIONS
+        title.search(string=submission_data.title) for title in ReplySettings.SUBMISSION_EXCLUSIONS
     ]
 
     if time.time() - submission_data.created_utc > 10 * 60:
@@ -287,8 +282,8 @@ def submission_requires_action(submission_data: praw.Reddit.submission, regex_ma
                     + submission_data.id)
         return False
 
-    elif submission_data.author.name in MiscSettings.IGNORE_CALLS_FROM:  # Bots
-        logger.info(
+    elif submission_data.author.name in ReplySettings.IGNORE_CALLS_FROM:  # Bots
+        logger.debug(
             "Bot will not reply to itself or to the real CardFetcher (submission). "
             + submission_data.id)
         return False
@@ -319,8 +314,7 @@ def item_reply(item_type: str, item_data, regex_matches: list, image_links: list
     """
     reply_text = generate_reply_text(regex_matches, image_links)
     item_data.reply(reply_text)
-    logger.info(f"Reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
-    print(f"Reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
+    logger.confirmation(f"Reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
 
 
 def special_reply(item_type: str, reddit_data: RedditData, item_data, callname: str):
@@ -333,5 +327,4 @@ def special_reply(item_type: str, reddit_data: RedditData, item_data, callname: 
     """
     art = reddit_data.collectibles.objects[callname].art()
     item_data.reply(art)
-    logger.info(f"{callname} NFT reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
-    print(f"{callname} NFT reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)
+    logger.confirmation(f"{callname} NFT reply to {item_type} successful: https://www.reddit.com" + item_data.permalink)

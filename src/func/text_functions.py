@@ -3,12 +3,12 @@
 import random
 import re
 
-from data.configs import SpecialReplySettings
-from func.base_logger import logger
-from data.collectibles import ColossalDreadmaw, StormCrow, Negate
-from data.rastamon_cards import Rastamon, RastamonCard
-import data.replies as replies
-import func.scryfall_functions as sf
+from src.configs import SpecialReplySettings, ReplySettings
+from src.func.base_logger import logger
+from src.data.collectibles import ColossalDreadmaw, StormCrow, Negate
+from src.data.rastamon_cards import Rastamon, RastamonCard
+from src.data import replies
+import src.func.scryfall_functions as sf
 
 
 class BotReplyText:
@@ -24,6 +24,7 @@ class BotReplyText:
         :param flavour: Element that contains the optional flavour text.
         :param footer: Element that contains the standard footer text.
         """
+        self.reply_count = 0
         self.header = header
         self.body = body
         self.flavour = flavour
@@ -38,6 +39,16 @@ class BotReplyText:
         :param text: A string of text to be added to the text body attribute.
         """
         self.body += text
+
+    def length_over_limit(self) -> bool:
+        """
+        Checks the length of the reply against a value.
+        :return: True if over the character limit, False otherwise.
+        """
+        all_text = self.header + self.body + self.flavour + self.footer
+        if len(all_text) > ReplySettings.REPLY_MAX_LENGTH:
+            return True
+        return False
 
 
 def get_regex_bracket_matches(text: str) -> list:
@@ -126,6 +137,16 @@ def generate_reply_text(regex_matches: list, links: list) -> str:
     """
     reply = BotReplyText()
 
+    # Check that the query has fewer than the limit queries
+    if len(regex_matches) > ReplySettings.REPLY_MAX_COUNT:
+        reply.header = "No-one is home.\n\n"
+        reply.body = "<cue tumbleweed>\n\n"
+        reply.flavour = f"*There are more than {ReplySettings.REPLY_MAX_COUNT} queries! :(*\n\n"
+        reply.footer = "*********\n\nSubmit your content at: r/MTGCardBelcher"
+        reply_text = f'''{reply.header}{reply.body}{reply.flavour}{reply.footer}'''
+        logger.info(f"A query with {len(regex_matches)} results was blocked.")
+        return reply_text
+
     # Some overrides for Colossal Dreadmaw
     if ([item.casefold() for item in regex_matches if item in ColossalDreadmaw.SPELLINGS]
             and SpecialReplySettings.NFT_REPLIES_ON):
@@ -159,7 +180,7 @@ def generate_reply_text(regex_matches: list, links: list) -> str:
 
     if choose_special == 0:  # Text-only replies, no links
         reply.body = replies.ReplyLinklessTexts.random_linkless_reply()
-        logger.warning("Easter egg with no image links delivered. Please investigate reception.")
+        logger.confirmation("Easter egg with no image links delivered. Please investigate reception. Link below.")
 
     elif choose_special == 1:  # Special delivery line, yes links
         reply.header = replies.ReplyHeaders.random_special_header()
@@ -173,7 +194,7 @@ def generate_reply_text(regex_matches: list, links: list) -> str:
 
         # For each regex match loop de loop
         for cardname in regex_matches:
-            scryfall_image = sf.get_scryfall_image(cardname)
+            scryfall_images = sf.get_scryfall_image(cardname)
             rastamon_card = Rastamon.find_card(cardname)
 
             # Some overrides for Revel in Riches
@@ -183,12 +204,16 @@ def generate_reply_text(regex_matches: list, links: list) -> str:
             # Some overrides for Rastamonliveup cards
             elif rastamon_card.proper_name:
                 reply = set_rastamon(reply, rastamon_card)
-                logger.info("Tell the children the truth.")
+                logger.info("Tell the children the truth. (A Rastamon reply was delivered.)")
 
             # If a real cardname matches the regex make a Scryfall link
-            elif scryfall_image:
+            elif len(scryfall_images) == 1:
                 reply.body_add_text(f'''[{cardname}]({random.choice(links)})'''
-                                    f''' - ([SF]({scryfall_image}))\n\n''')
+                                    f''' - ([SF]({scryfall_images[0]}))\n\n''')
+
+            elif len(scryfall_images) == 2:
+                reply.body_add_text(f'''[{cardname}]({random.choice(links)})'''
+                                    f''' - ([S]({scryfall_images[0]})[F]({scryfall_images[1]}))\n\n''')
 
             # No real cardname matches, no Scryfall link
             else:
@@ -202,5 +227,12 @@ def generate_reply_text(regex_matches: list, links: list) -> str:
     # Add the standard footer text
     reply.footer = "*********\n\nSubmit your content at: r/MTGCardBelcher"
 
+    if reply.length_over_limit():
+        reply.header = "No-one is home.\n\n"
+        reply.body = "<crickets>\n\n"
+        reply.flavour = f"_The reply would be over {ReplySettings.REPLY_MAX_LENGTH} characters!!_\n\n"
+        logger.info(f"A query with too many characters was blocked.")
+
     reply_text = f'''{reply.header}{reply.body}{reply.flavour}{reply.footer}'''
+
     return reply_text

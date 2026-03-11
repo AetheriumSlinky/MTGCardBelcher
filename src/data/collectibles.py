@@ -3,8 +3,8 @@ import random
 
 import praw
 
-from func.timer import RefreshTimer
-from data.configs import SpecialReplySettings
+from src.func.timer import RefreshTimer
+from src.configs import SpecialReplySettings
 
 
 class CollectiblesTemplate:
@@ -126,7 +126,7 @@ class ColossalDreadmaw(CollectiblesTemplate):
     | #{count_str} C              \\  / 6 /|
     | M19•EN  ==>Jesper Ejsing     |
     \\______________________________/\n\n
-*^(You are No. {count_str}! This content is best viewed by opening this reply directly.)*\n\n''')
+*^(You are No. {count_str} to encounter Colossal Dreadmaw!\nThis content is best viewed by opening this reply directly.)*\n\n''')
         return art
 
 
@@ -184,7 +184,7 @@ class StormCrow(CollectiblesTemplate):
     |                      \\  / 2 /|
     | ==>John Matson      #{count_str}    |
     \\______________________________/\n\n
-*^(You are No. {count_str}! This content is best viewed by opening this reply directly.)*\n\n""")
+*^(You are No. {count_str} to see Storm Crow fly!\nThis content is best viewed by opening this reply directly.)*\n\n""")
         return art
 
 
@@ -245,7 +245,7 @@ class Negate(CollectiblesTemplate):
                 "Thanks for not showing the board state with library counts or the full log, asshole. "
                 "Enjoy your temporary ban from reddit._\n\n"
                 "*********\n\n"
-                f"*^(You are No. {count_str} to counter Negate!)*\n\n"
+                f"*^(You are No. {count_str} to counter Revel in Riches!)*\n\n"
 )
         return art
 

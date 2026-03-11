@@ -6,9 +6,9 @@ import praw
 import praw.exceptions
 import prawcore
 
-from func.base_logger import logger
-from data.exceptions import LoginException, FatalLoginError
-from data.collectibles import Collectibles
+from src.func.base_logger import logger
+from src.data.exceptions import LoginException, FatalLoginError
+from src.data.collectibles import Collectibles
 
 
 class SubredditData:
@@ -42,23 +42,23 @@ class RedditData:
             try:
                 return func(*args, **kwargs)
             except prawcore.ServerError as server_err:
-                logger.warning("Server error, retry in 5 minutes. Error code: " + str(server_err))
+                logger.warning("Server error, resume in 5 minutes. Error code: " + str(server_err))
                 time.sleep(300)
                 raise LoginException
             except prawcore.RequestException as request_exc:
-                logger.warning("Incomplete HTTP request, retry in 10 seconds. Error code: " + str(request_exc))
-                time.sleep(10)
+                logger.warning("Incomplete HTTP request, resume in 5 minutes. Error code: " + str(request_exc))
+                time.sleep(300)
                 raise LoginException
             except prawcore.ResponseException as response_exc:
-                logger.warning("HTTP request response error, retry in 30 seconds. Error code: " + str(response_exc))
+                logger.warning("HTTP request response error, resume in 30 seconds. Error code: " + str(response_exc))
                 time.sleep(30)
                 raise LoginException
             except praw.exceptions.RedditAPIException as rapi_e:
-                logger.warning("RedditAPIException, retry in 10 seconds. Error code: " + str(rapi_e))
+                logger.warning("RedditAPIException, resume in 10 seconds. Error code: " + str(rapi_e))
                 time.sleep(10)
                 raise LoginException
             except praw.exceptions.APIException as api_e:
-                logger.warning("APIException, retry in 10 seconds. Error code: " + str(api_e))
+                logger.warning("APIException, resume in 10 seconds. Error code: " + str(api_e))
                 time.sleep(10)
                 raise LoginException
         return wrapper
@@ -80,7 +80,7 @@ class RedditData:
             client_secret=info[4])
 
         self.reddit = reddit_instance
-        logger.info("Reddit login successful.")
+        logger.confirmation("Reddit login successful.")
 
     @__login_error_handler
     def __open_streams(self):

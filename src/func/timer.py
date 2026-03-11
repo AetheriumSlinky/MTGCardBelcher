@@ -25,7 +25,7 @@ class RefreshTimer:
         self.__expiry_time = dt.datetime.now() + dt.timedelta(seconds=new_time_from_now)
         self.__expired = False
 
-    def it_is_time(self) -> bool:
+    def is_it_time(self) -> bool:
         """
         Recurring timer. If interval is not zero it also sets a new expiry time based on interval.
         :return: True if the interval has passed and timer is not stopped, False at other times.
