@@ -13,6 +13,10 @@ def get_scryfall_image(cardname: str) -> list:
     :return: Image URL if an exact match is found, empty string if no match is found or Scryfall can't be reached.
     """
     try:
+        # Ampersands in names confuse the query so just ... get rid of those
+        if "&" in cardname:
+            cardname = cardname.replace("& ", "")
+
         cardname_match = requests.get(url=f'https://api.scryfall.com/cards/named?exact={cardname}',
                                       headers=BotInfo.SCRYFALL_USER_AGENT_HEADER)
         if cardname_match:
