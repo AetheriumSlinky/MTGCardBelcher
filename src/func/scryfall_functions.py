@@ -10,23 +10,30 @@ def get_scryfall_image(cardname: str) -> list:
     """
     Fetches the image URL that matches the cardname.
     :param cardname: Cardname.
-    :return: Image URL if an exact match is found, empty string if no match is found or Scryfall can't be reached.
+    :return: A list of image URLs if an exact match(es) is found,
+    empty list if no match is found or Scryfall can't be reached.
     """
     try:
         # Ampersands in names confuse the query so just ... get rid of those
         if "&" in cardname:
             cardname = cardname.replace("& ", "")
 
-        cardname_match = requests.get(url=f'https://api.scryfall.com/cards/named?exact={cardname}',
+        cardname_json = requests.get(url=f'https://api.scryfall.com/cards/named?exact={cardname}',
                                       headers=BotInfo.SCRYFALL_USER_AGENT_HEADER)
-        if cardname_match:
-            if cardname_match.json().get('content_warning'):  # Don't append the forbidden cards
+        if cardname_json:
+
+            # If cardname JSON has content warning ignore it
+            if cardname_json.json().get('content_warning'):
                 image_url = []
-            elif 'card_faces' in cardname_match.json().keys():
-                image_url = [cardname_match.json()['card_faces'][0]['image_uris']['normal'],
-                             cardname_match.json()['card_faces'][1]['image_uris']['normal']]
+
+            # If the returned JSON has keys names "card_faces" it means the card is DFC
+            elif 'card_faces' in cardname_json.json().keys():
+                image_url = [cardname_json.json()['card_faces'][0]['image_uris']['normal'],
+                             cardname_json.json()['card_faces'][1]['image_uris']['normal']]
+
+            # Otherwise the card must be single sided
             else:
-                image_url = [cardname_match.json()['image_uris']['normal']]
+                image_url = [cardname_json.json()['image_uris']['normal']]
         else:
             image_url = []
 
