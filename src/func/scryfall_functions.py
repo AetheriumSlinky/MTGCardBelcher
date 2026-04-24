@@ -9,7 +9,7 @@ from src.configs import BotInfo
 def get_scryfall_image(cardname: str) -> list:
     """
     Fetches the image URL that matches the cardname.
-    :param cardname: Cardname.
+    :param cardname: A card's name.
     :return: A list of image URLs if an exact match(es) is found,
     empty list if no match is found or Scryfall can't be reached.
     """
