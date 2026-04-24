@@ -16,7 +16,7 @@ def get_scryfall_image(cardname: str) -> list:
     try:
         # Ampersands in names confuse the query so just ... get rid of those
         if "&" in cardname:
-            cardname = cardname.replace("& ", "")
+            cardname = cardname.replace("&", "")
 
         cardname_json = requests.get(url=f'https://api.scryfall.com/cards/named?exact={cardname}',
                                       headers=BotInfo.SCRYFALL_USER_AGENT_HEADER)
