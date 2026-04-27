@@ -9,8 +9,8 @@ import prawcore
 
 from src.func.base_logger import logger
 from src.func.reddit_connection import RedditData
-from src.data.exceptions import MainOperationException
-from src.configs import IMGSubmissionParams, Subreddits, ReplySettings, SpecialReplySettings
+from src.data.exceptions import FatalConnectionError, MainOperationException
+from src.configs import IMGSubmissionParams, Subreddits, ReplySettings, SpecialReplySettings, GeneralSettings
 from src.func.text_functions import get_regex_bracket_matches, generate_reply_text
 
 
@@ -34,28 +34,26 @@ def main_error_handler(func):
     """
     def wrapper(*args, **kwargs):
         """Wrapper."""
-        try:
-            return func(*args, **kwargs)
-        except prawcore.ServerError as server_err:
-            logger.warning("Server error, resume in 5 minutes. Error code: " + str(server_err))
-            time.sleep(300)
-            raise MainOperationException
-        except prawcore.RequestException as request_exc:
-            logger.warning("Incomplete HTTP request, resume in 5 minutes. Error code: " + str(request_exc))
-            time.sleep(300)
-            raise MainOperationException
-        except prawcore.ResponseException as response_exc:
-            logger.warning("HTTP request response error, resume in 30 seconds. Error code: " + str(response_exc))
-            time.sleep(30)
-            raise MainOperationException
-        except praw.exceptions.RedditAPIException as rapi_e:
-            logger.warning("RedditAPIException, resume in 10 seconds. Error code: " + str(rapi_e))
-            time.sleep(10)
-            raise MainOperationException
-        except praw.exceptions.APIException as api_e:
-            logger.warning("APIException, resume in 10 seconds. Error code: " + str(api_e))
-            time.sleep(10)
-            raise MainOperationException
+
+        attempts = 0
+        while attempts <= GeneralSettings.MAX_RETRIES:
+            try:
+                return func(*args, **kwargs)
+
+            except (prawcore.ServerError, prawcore.RequestException,
+                    prawcore.ResponseException, praw.exceptions.RedditAPIException,
+                    praw.exceptions.APIException) as e:
+                logger.warning(f"Resume in {3 ** attempts} seconds. " + str(e))
+                time.sleep(3 ** attempts)
+                attempts += 1
+
+            except prawcore.PrawcoreException as e:
+                logger.warning(f"A nonspecific error " + str(e) + " occurred, trying re-login.")
+                raise MainOperationException(str(e))
+
+        logger.critical(f"There were {attempts} failed attempts. Stopped trying to log in. Goodbye.")
+        raise FatalConnectionError("Too many failed login attemps. Goodbye.")
+
     return wrapper
 
 
