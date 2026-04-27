@@ -5,7 +5,7 @@ class LoginException(Exception):
     pass
 
 
-class FatalLoginError(Exception):
+class FatalConnectionError(Exception):
     """Fatal error during login."""
     pass
 
