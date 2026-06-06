@@ -9,7 +9,7 @@ import prawcore
 
 from src.func.base_logger import logger
 from src.func.reddit_connection import RedditData
-from src.data.exceptions import FatalConnectionError, MainOperationException
+from src.data.exceptions import FatalConnectionError, OperationConnectionException
 from src.configs import IMGSubmissionParams, Subreddits, ReplySettings, SpecialReplySettings, GeneralSettings
 from src.func.text_functions import get_regex_bracket_matches, generate_reply_text
 
@@ -36,23 +36,39 @@ def main_error_handler(func):
         """Wrapper."""
 
         attempts = 0
+        needs_to_oauth = False
         while attempts <= GeneralSettings.MAX_RETRIES:
             try:
-                return func(*args, **kwargs)
+                result = func(*args, **kwargs)
+                if needs_to_oauth:
+                    raise OperationConnectionException("Must resend OAuth info.")
+                else:
+                    return result
 
             except (prawcore.ServerError, prawcore.RequestException,
                     prawcore.ResponseException, praw.exceptions.RedditAPIException,
                     praw.exceptions.APIException) as e:
-                logger.warning(f"Resume in {3 ** attempts} seconds. " + str(e))
+                logger.warning("A likely temporary error " + str(e)
+                               + f" occurred. Resume in {3 ** attempts} seconds.")
                 time.sleep(3 ** attempts)
                 attempts += 1
 
-            except prawcore.PrawcoreException as e:
-                logger.warning(f"A nonspecific error " + str(e) + " occurred, trying re-login.")
-                raise MainOperationException(str(e))
+                if "Failed to resolve 'oauth.reddit.com'" in str(e):
+                    logger.warning("OAuth info needs to be resent.")
+                    needs_to_oauth = True
 
-        logger.critical(f"There were {attempts} failed attempts. Stopped trying to log in. Goodbye.")
-        raise FatalConnectionError("Too many failed login attemps. Goodbye.")
+            except prawcore.PrawcoreException as e:
+                logger.warning("A nonspecific PRAW related error " + str(e)
+                               + f" occurred. Resume in {3 ** attempts} seconds." )
+                time.sleep(3 ** attempts)
+                attempts += 1
+
+                if "Failed to resolve 'oauth.reddit.com'" in str(e):
+                    logger.warning("OAuth info needs to be resent.")
+                    needs_to_oauth = True
+
+        logger.critical(f"There were {attempts} failed attempts. Stopped trying. Goodbye.")
+        raise FatalConnectionError("Too many failed attemps. Goodbye.")
 
     return wrapper
 
