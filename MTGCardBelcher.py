@@ -5,7 +5,7 @@ import time
 from src.func.base_logger import logger
 from src.func.reddit_connection import RedditData
 from src.func.timer import RefreshTimer
-from src.data.exceptions import MainOperationException, FatalConnectionError
+from src.data.exceptions import OperationConnectionException, FatalConnectionError
 from src.configs import BotInfo, Subreddits
 import src.func.reddit_actions as r
 
@@ -28,15 +28,16 @@ def main():
                 r.comment_action(connection, sub, image_submission_links)
                 r.submission_action(connection, sub, image_submission_links)
 
-        except MainOperationException:
+        except OperationConnectionException:
             connection = RedditData(BotInfo.REDDIT_OAUTH, Subreddits.CALL_SUBREDDITS)
+            logger.info("OAuth info resent.")
 
         except FatalConnectionError as e:
             logger.critical(e)
             sys.exit()
 
         # Reddit has in-built sleep already but just in case sleep again
-        time.sleep(5)
+        time.sleep(1)
 
 
 if __name__ == "__main__":
