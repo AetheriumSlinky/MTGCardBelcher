@@ -31,13 +31,11 @@ def get_scryfall_image(cardname: str) -> list:
                   ['split', 'flip', 'meld', 'leveler', 'class', 'case', 'saga', 'adventure', 'prepare',
                    'mutate', 'prototype', 'battle', 'planar', 'scheme', 'vanguard', 'token',
                    'emblem', 'augment', 'host']):
-                print(fixed_cardname, cardname_json.json()['layout'])
                 image_url = [cardname_json.json()['image_uris']['normal']]
 
             # Catch DFCs
             elif (cardname_json.json()['layout'] in
                   ['transform', 'modal_dfc', 'double_faced_token', 'art_series', 'reversible_card']):
-                print(fixed_cardname, cardname_json.json()['layout'])
                 image_url = [cardname_json.json()['card_faces'][0]['image_uris']['normal'],
                              cardname_json.json()['card_faces'][1]['image_uris']['normal']]
 
