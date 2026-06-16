@@ -46,8 +46,7 @@ def main_error_handler(func):
                     return result
 
             except (prawcore.ServerError, prawcore.RequestException,
-                    prawcore.ResponseException, praw.exceptions.RedditAPIException,
-                    praw.exceptions.APIException) as e:
+                    prawcore.ResponseException, praw.exceptions.RedditAPIException) as e:
                 logger.warning("A likely temporary error " + str(e)
                                + f" occurred. Resume in {3 ** attempts} seconds.")
                 time.sleep(3 ** attempts)
