@@ -3,6 +3,7 @@
 import re
 from pathlib import Path
 
+
 class BotInfo:
     """
     Information required to access Reddit and Scryfall.
