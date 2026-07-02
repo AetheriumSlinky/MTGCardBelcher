@@ -14,7 +14,7 @@ class CollectiblesTemplate:
 
     def __init__(self, reddit: praw.Reddit | None):
         self.reddit = reddit
-        self.timer = RefreshTimer(0, stopped=True)
+        self.timer = RefreshTimer(0, running=False)
         self.name = ""
         self.spellings = []
 
@@ -36,7 +36,7 @@ class CollectiblesTemplate:
         """
         Sets a new, random timer delay.
         """
-        self.timer.new_expiry_time(random.randint(SpecialReplySettings.REPLY_MIN_TIMER,
+        self.timer.new_expiry_time(seconds_into_future=random.randint(SpecialReplySettings.REPLY_MIN_TIMER,
                                                   SpecialReplySettings.REPLY_MAX_TIMER))
 
     def _reddit_counter_actions(self, counter_comment_id: str):
@@ -60,16 +60,12 @@ class CollectiblesTemplate:
         :param count: Number of times a call to the collectible has been made.
         :return: A string from an int with exactly four characters, filled with leading zeros.
         """
-        if count < 10:
-            return "000" + str(count)
-        elif 10 <= count < 100:
-            return "00" + str(count)
-        elif 100 <= count < 1000:
-            return "0" + str(count)
-        elif 1000 <= count < 10000:
-            return str(count)
-        else:
-            raise ValueError("Collector number has too many digits.")
+        text = str(count)
+        if len(text) > 4:
+            raise ValueError(f"Some collector number has too many digits.")
+        while len(text) < 4:
+            text = "0" + text
+        return text
 
 
 class ColossalDreadmaw(CollectiblesTemplate):
@@ -84,7 +80,7 @@ class ColossalDreadmaw(CollectiblesTemplate):
         super().__init__(reddit)
         self.name = self.NAME
         self.spellings = self.SPELLINGS
-        self.timer.stopped = False
+        self.timer.running = True
 
     def art(self) -> str:
         """
@@ -142,7 +138,7 @@ class StormCrow(CollectiblesTemplate):
         super().__init__(reddit)
         self.name = self.NAME
         self.spellings = self.SPELLINGS
-        self.timer.stopped = False
+        self.timer.running = True
 
     def art(self) -> str:
         """
@@ -200,7 +196,7 @@ class Negate(CollectiblesTemplate):
         super().__init__(reddit)
         self.name = self.NAME
         self.spellings = self.SPELLINGS
-        self.timer.stopped = False
+        self.timer.running = True
 
     def art(self) -> str:
         """

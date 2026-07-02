@@ -3,6 +3,7 @@
 import re
 from pathlib import Path
 
+
 class BotInfo:
     """
     Information required to access Reddit and Scryfall.
@@ -31,13 +32,15 @@ class GeneralSettings:
     LOGS_LEVEL = 20  # Level 20 corresponds to INFO, 21 is less verbose CONFIRMATION
     CONSOLE_MESSAGE_LEVEL = 21  # Level 20 corresponds to INFO, 21 is less verbose CONFIRMATION
 
+    MAX_RETRIES = 10  # How many times a critical network requested is attempted
+
 
 class Subreddits:
     """
     Call subreddits list (where the bot comments)
     and image submission subreddits list (where the joke images come from).
     """
-    CALL_SUBREDDITS = ["magicthecirclejerking", "MTGCardBelcher_dev"]
+    CALL_SUBREDDITS = ["magicthecirclejerking", "edhcirclejerk", "MTGCardBelcher_dev"]
     SUBMISSION_SUBREDDITS = ["MTGCardBelcher"]
     MAX_IMAGE_SUBMISSIONS = 1000  # This cannot be higher than 1000
 
@@ -53,8 +56,8 @@ class IMGSubmissionParams:
     Submission flair IDs: basic, pending, approved, rejected.
     """
     MAX_IMAGE_APPROVE_TIMEDELTA = 1209600  # 2 weeks
-    SCORE_THRESHOLD = 30
-    RATIO_THRESHOLD = 0.74
+    SCORE_THRESHOLD = 50
+    RATIO_THRESHOLD = 0.85
     FLAIR_IDS = {
         "new": 'fcc29ab2-9cec-11ef-adbd-76354d1eb977',
         "pending": '337aaa10-9cf5-11ef-b08d-1e57adeb694e',

@@ -9,20 +9,44 @@ from src.configs import BotInfo
 def get_scryfall_image(cardname: str) -> list:
     """
     Fetches the image URL that matches the cardname.
-    :param cardname: Cardname.
-    :return: Image URL if an exact match is found, empty string if no match is found or Scryfall can't be reached.
+    :param cardname: A card's name.
+    :return: A list of image URLs if an exact match(es) is found,
+    empty list if no match is found or Scryfall can't be reached.
     """
     try:
-        cardname_match = requests.get(url=f'https://api.scryfall.com/cards/named?exact={cardname}',
-                                      headers=BotInfo.SCRYFALL_USER_AGENT_HEADER)
-        if cardname_match:
-            if cardname_match.json().get('content_warning'):  # Don't append the forbidden cards
+        # Special characters in names confuse the query so just ... get rid of those
+        fixed_cardname = cardname.replace("&", "")
+        fixed_cardname = fixed_cardname.replace("//", "")
+
+        cardname_json = requests.get(url=f'https://api.scryfall.com/cards/named?exact={fixed_cardname}',
+                                     headers=BotInfo.SCRYFALL_USER_AGENT_HEADER)
+        if cardname_json:
+
+            # If cardname JSON has content warning ignore it
+            if cardname_json.json().get('content_warning'):
                 image_url = []
-            elif 'card_faces' in cardname_match.json().keys():
-                image_url = [cardname_match.json()['card_faces'][0]['image_uris']['normal'],
-                             cardname_match.json()['card_faces'][1]['image_uris']['normal']]
+
+            # Catch SFCs
+            elif (cardname_json.json()['layout'] in
+                  ['split', 'flip', 'meld', 'leveler', 'class', 'case', 'saga', 'adventure', 'prepare',
+                   'mutate', 'prototype', 'battle', 'planar', 'scheme', 'vanguard', 'token',
+                   'emblem', 'augment', 'host']):
+                image_url = [cardname_json.json()['image_uris']['normal']]
+
+            # Catch DFCs
+            elif (cardname_json.json()['layout'] in
+                  ['transform', 'modal_dfc', 'double_faced_token', 'art_series', 'reversible_card']):
+                image_url = [cardname_json.json()['card_faces'][0]['image_uris']['normal'],
+                             cardname_json.json()['card_faces'][1]['image_uris']['normal']]
+
+            # Otherwise the card should be single sided
+            elif cardname_json.json()['layout'] in ['normal']:
+                image_url = [cardname_json.json()['image_uris']['normal']]
+
+            # If there is an unknown layout return nothing
             else:
-                image_url = [cardname_match.json()['image_uris']['normal']]
+                image_url = []
+
         else:
             image_url = []
 

@@ -1,13 +1,9 @@
 """Contains functions that handle logging in to Reddit."""
 
-import time
-
 import praw
 import praw.exceptions
-import prawcore
 
 from src.func.base_logger import logger
-from src.data.exceptions import LoginException, FatalLoginError
 from src.data.collectibles import Collectibles
 
 
@@ -30,40 +26,9 @@ class RedditData:
         self.reddit: praw.Reddit
         self.subreddit_streams: dict[str, SubredditData]
         self.collectibles: Collectibles
-        self.__try_login_loop(login_info)
+        self.__login(login_info)
 
-    @staticmethod
-    def __login_error_handler(func):
-        """
-        Handles the errors during login. Does not re-attempt login.
-        """
-        def wrapper(*args, **kwargs):
-            """Wrapper."""
-            try:
-                return func(*args, **kwargs)
-            except prawcore.ServerError as server_err:
-                logger.warning("Server error, resume in 5 minutes. Error code: " + str(server_err))
-                time.sleep(300)
-                raise LoginException
-            except prawcore.RequestException as request_exc:
-                logger.warning("Incomplete HTTP request, resume in 5 minutes. Error code: " + str(request_exc))
-                time.sleep(300)
-                raise LoginException
-            except prawcore.ResponseException as response_exc:
-                logger.warning("HTTP request response error, resume in 30 seconds. Error code: " + str(response_exc))
-                time.sleep(30)
-                raise LoginException
-            except praw.exceptions.RedditAPIException as rapi_e:
-                logger.warning("RedditAPIException, resume in 10 seconds. Error code: " + str(rapi_e))
-                time.sleep(10)
-                raise LoginException
-            except praw.exceptions.APIException as api_e:
-                logger.warning("APIException, resume in 10 seconds. Error code: " + str(api_e))
-                time.sleep(10)
-                raise LoginException
-        return wrapper
 
-    @__login_error_handler
     def __reddit_login(self, login_info):
         """
         Logs in to Reddit.
@@ -80,9 +45,8 @@ class RedditData:
             client_secret=info[4])
 
         self.reddit = reddit_instance
-        logger.confirmation("Reddit login successful.")
+        logger.confirmation("Reddit login attempt successful.")
 
-    @__login_error_handler
     def __open_streams(self):
         """
         Creates a dictionary with SubredditData objects with subreddit names as keys.
@@ -92,34 +56,18 @@ class RedditData:
             self.subreddit_streams[subreddit] = SubredditData(subreddit, self.reddit)
             logger.info(f"Stream connections for {subreddit} were initiated or restored.")
 
-    @__login_error_handler
     def __collectibles(self):
         """
         Creates instances of the collectible card objects.
         """
         self.collectibles = Collectibles(self.reddit)
 
-    def __try_login_loop(self, login_info):
+    def __login(self, login_info):
         """
-        Tries to log in on loop perpetually. Raises FatalLoginError if there are too many attempts to log in.
+        Initiates the RedditData object properly.
         :param login_info: A text file containing the OAuth info.
         :return: A RedditData object containing the Reddit instance and subreddit streams.
         """
-        attempts = 0
-
-        while attempts < 20:
-            try:
-                self.__reddit_login(login_info)
-                self.__open_streams()
-                self.__collectibles()
-                break
-
-            except LoginException:
-                time.sleep(2 ** attempts)
-                logger.warning(f"Exception while retrieving Reddit data during login. "
-                               f"Retrying after {2 ** attempts} seconds.")
-                attempts += 1
-
-        if attempts >= 20:
-            logger.critical(f"There were {attempts} failed login attempts. Stopped trying to log in. Goodbye.")
-            raise FatalLoginError("Too many failed login attemps. Exiting program. Goodbye.")
+        self.__reddit_login(login_info)
+        self.__open_streams()
+        self.__collectibles()

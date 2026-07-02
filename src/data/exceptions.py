@@ -1,15 +1,10 @@
 """Contains different exceptions that can happen during operation."""
 
-class LoginException(Exception):
-    """Exception during login."""
-    pass
-
-
-class FatalLoginError(Exception):
+class FatalConnectionError(Exception):
     """Fatal error during login."""
     pass
 
 
-class MainOperationException(Exception):
+class OperationConnectionException(Exception):
     """Exception during normal operation."""
     pass
